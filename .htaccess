@@ -1,0 +1,48 @@
+# Fourge — force HTTPS site-wide.
+# Passwords are hashed AT REST (Argon2id/bcrypt), but a login, password change,
+# or API key sent over plain HTTP is exposed in transit. This redirect closes
+# that gap so every request — public pages, the admin login, and api.php — is
+# served over TLS.
+#
+# The second condition handles shared hosts and load balancers that terminate
+# TLS at the edge and forward plain HTTP to PHP: there %{HTTPS} reads "off" even
+# though the visitor is on HTTPS, so we also trust X-Forwarded-Proto. Without it
+# you can hit an infinite redirect loop on those hosts.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# HSTS — tells browsers "only ever load this site over HTTPS." Left OFF by
+# default ON PURPOSE: once a browser sees this header it will REFUSE http:// for
+# max-age seconds, so a broken or expired certificate can make the whole site
+# unreachable. Enable it ONLY after HTTPS is confirmed stable across the domain
+# (and every subdomain, if you add includeSubDomains), by uncommenting:
+# <IfModule mod_headers.c>
+#   Header always set Strict-Transport-Security "max-age=31536000"
+# </IfModule>
+
+# Fourge — clean URLs.
+# Serve /page from /page.html and drop the .html from the public URL so each
+# page has one canonical, extensionless address (better for SEO). Files stay
+# plain .html on disk; only the URL changes. The CMS, its data folder, and any
+# real files/directories are left untouched, and this block is independent of
+# the password-gate block api.php manages, so the two don't interfere.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # /index.html → the site root (one canonical home URL).
+  RewriteCond %{REQUEST_URI} !^/(admin|data)/ [NC]
+  RewriteCond %{THE_REQUEST} \s/+index\.html?[\s?] [NC]
+  RewriteRule ^ / [R=301,L]
+  # Any explicit .html request → its extensionless URL (301).
+  RewriteCond %{REQUEST_URI} !^/(admin|data)/ [NC]
+  RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
+  RewriteRule ^ /%1 [R=301,L]
+  # Extensionless request → serve the matching .html file when it exists.
+  RewriteCond %{REQUEST_URI} !^/(admin|data)/ [NC]
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.html -f
+  RewriteRule ^(.+?)/?$ $1.html [L]
+</IfModule>
