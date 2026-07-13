@@ -169,7 +169,7 @@ $action = $body['action'] ?? $_POST['action'] ?? '';
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
 $PUBLIC_ACTIONS  = ['login', 'send_form'];
-$SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test'];
+$SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
 $hasApiToken = ($apiTok !== '' && hash_equals(API_TOKEN, (string)$apiTok));
@@ -232,6 +232,7 @@ try {
         case 'upload':      ob_end_clean(); handleUpload();    break;
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
+        case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
         case 'ga_status':   ob_end_clean(); gaStatus();          break;
         case 'ga_report':   ob_end_clean(); gaReport($body);     break;
@@ -872,6 +873,71 @@ function cmsSendForm($body) {
     if ($curlErr) { http_response_code(500); echo json_encode(['error' => 'Mail failed: '.$curlErr]); return; }
     if ($code === 200) { echo json_encode(['ok' => true]); }
     else { $d = json_decode($result, true); http_response_code(500); echo json_encode(['error' => 'Mailgun '.$code.': '.($d['message']??$result)]); }
+}
+
+// Admin-only diagnostic: send a real test email through the SAME transport the
+// contact form uses (SMTP if configured, else the Mailgun HTTP API) and return
+// the EXACT outcome. Unlike send_form (public — which hides the reason so a
+// visitor never sees server internals), this is a signed-in action, so it
+// surfaces the actual failure ("login rejected", "sender not verified", etc.)
+// to help configure form email. It never stores an entry or pushes a lead.
+function cmsTestEmail($body) {
+    $mg = cmsMailgun();
+    $to = trim((string)($body['to'] ?? ''));
+    if ($to === '') $to = trim((string)$mg['notify']);
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'No valid recipient. Enter an address to test, or set a notify address (mg_notify_to) in admin/config.secret.php.']);
+        return;
+    }
+    $subject = 'Fourge test email';
+    $text = "This is a test email from your Fourge CMS.\nIf you received it, contact-form delivery is working.\n\nSent: " . date('r');
+    $html = '<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;color:#1A1917">'
+        . '<h2 style="font-size:18px">Fourge test email</h2>'
+        . '<p>This is a test email from your Fourge CMS. If you received it, contact-form delivery is working.</p>'
+        . '<p style="font-size:11px;color:#A09882">Sent ' . htmlspecialchars(date('Y-m-d H:i')) . '</p></body></html>';
+
+    if (cmsSmtpEnabled()) {
+        $fromRaw = trim((string)$mg['from']);
+        if ($fromRaw === '' || stripos($fromRaw, 'example.com') !== false) $fromRaw = SMTP_USER;
+        $fromEmail = $fromRaw; $fromName = '';
+        if (preg_match('/^\s*(.*?)\s*<([^>]+)>\s*$/', $fromRaw, $mm)) { $fromName = trim($mm[1], " \"'"); $fromEmail = trim($mm[2]); }
+        if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) $fromEmail = SMTP_USER;
+        $err = '';
+        $sent = cmsSmtpSend([
+            'host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
+            'from' => $fromEmail, 'fromName' => $fromName, 'to' => $to, 'toName' => '',
+            'replyTo' => '', 'replyName' => '', 'subject' => $subject, 'html' => $html, 'text' => $text,
+        ], $err);
+        $secure = SMTP_SECURE === 'auto' ? (SMTP_PORT === 465 ? 'ssl' : 'tls') : SMTP_SECURE;
+        if ($sent) { echo json_encode(['ok' => true, 'via' => 'smtp', 'to' => $to, 'from' => $fromEmail, 'host' => SMTP_HOST, 'port' => SMTP_PORT]); }
+        else { http_response_code(502); echo json_encode(['ok' => false, 'via' => 'smtp', 'to' => $to, 'from' => $fromEmail, 'host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => $secure, 'error' => $err]); }
+        return;
+    }
+
+    if ($mg['key'] === '' || $mg['domain'] === '' || stripos((string)$mg['domain'], 'example.com') !== false) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'via' => 'none', 'error' => 'No email transport is configured. Add SMTP credentials or a Mailgun API key + domain in admin/config.secret.php.']);
+        return;
+    }
+    $ch = curl_init('https://api.mailgun.net/v3/' . $mg['domain'] . '/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD        => 'api:' . $mg['key'],
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => ['from'=>$mg['from'],'to'=>$to,'subject'=>$subject,'text'=>$text,'html'=>$html],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $result = curl_exec($ch);
+    $code   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr= curl_error($ch);
+    curl_close($ch);
+    if ($curlErr) { http_response_code(502); echo json_encode(['ok' => false, 'via' => 'mailgun', 'to' => $to, 'from' => $mg['from'], 'error' => 'cURL: '.$curlErr]); return; }
+    if ($code === 200) { echo json_encode(['ok' => true, 'via' => 'mailgun', 'to' => $to, 'from' => $mg['from']]); return; }
+    $d = json_decode($result, true);
+    http_response_code(502);
+    echo json_encode(['ok' => false, 'via' => 'mailgun', 'to' => $to, 'from' => $mg['from'], 'error' => 'Mailgun '.$code.': '.($d['message'] ?? $result)]);
 }
 
 // ── GOOGLE ANALYTICS (GA4 Data API proxy) ───────────────────────────────────
