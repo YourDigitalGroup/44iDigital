@@ -1752,6 +1752,11 @@ textarea.fb-input{resize:vertical}
           <div class="fg"><label>API Key</label><input type="password" id="s-claude" placeholder="sk-ant-…"></div>
           <button class="fd-btn-primary" onclick="saveClaudeKey()">Save</button>
         </div>
+        <div class="si-sec admin-only"><h2>Contact-Form Email</h2><div class="desc">Send a test email through the same transport your forms use, to check delivery. Email is configured server-side in <code>admin/config.secret.php</code>. Submissions are always saved under Forms → Entries even if email fails.</div>
+          <div class="fg"><label>Send test to</label><input type="email" id="s-test-email" placeholder="you@yourdomain.com"><small>Leave blank to use your configured notify address.</small></div>
+          <button class="fd-btn-primary" onclick="sendTestEmail(this)">Send test email</button>
+          <div id="s-test-email-result" style="margin-top:10px;font-size:12px"></div>
+        </div>
         <!-- Updates card removed — updates are fully automatic (installed at login).
              The engine source can still be overridden via the architect-only
              "Repository Override" card above if a site ever needs a non-default repo. -->
@@ -5910,6 +5915,27 @@ async function saveClaudeKey(){
     document.getElementById('s-claude').placeholder='Saved ✓';
     toast('Markup key saved (encrypted, server-side) ✓','ok');
   }catch(e){toast('Save failed: '+e.message,'err');}
+}
+// Send a test email through the same transport the contact form uses and show
+// the exact outcome, so form-email delivery can be diagnosed from the CMS. On
+// failure the server returns the real reason (e.g. SMTP "login rejected" or
+// "sender not verified"), which apiCall surfaces as the thrown error message.
+async function sendTestEmail(btn){
+  const el=document.getElementById('s-test-email');
+  const to=(el&&el.value.trim())||'';
+  const out=document.getElementById('s-test-email-result');
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  if(out){out.style.color='var(--muted)';out.textContent='Sending test email…';}
+  try{
+    const r=await apiCall('test_email', to?{to}:{});
+    if(out){ out.style.color='#166534'; out.innerHTML='✓ Sent via '+esc(r.via||'email')+' to <b>'+esc(r.to||to)+'</b>'+(r.from?(' from <b>'+esc(r.from)+'</b>'):'')+'. Check that inbox (and spam folder).'; }
+    toast('Test email sent ✓','ok');
+  }catch(e){
+    if(out){ out.style.color='#991b1b'; out.textContent='✕ '+(e.message||'Send failed'); }
+    toast('Test email failed','err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Send test email';}
+  }
 }
 // Change the signed-in user's own password via the server (verifies the
 // current password and rehashes with Argon2id; clears any forced-change flag).
