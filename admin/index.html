@@ -1752,7 +1752,7 @@ textarea.fb-input{resize:vertical}
           <div class="fg"><label>API Key</label><input type="password" id="s-claude" placeholder="sk-ant-…"></div>
           <button class="fd-btn-primary" onclick="saveClaudeKey()">Save</button>
         </div>
-        <div class="si-sec admin-only"><h2>Contact-Form Email</h2><div class="desc">Send a test email through the same transport your forms use, to check delivery. Email is configured server-side in <code>admin/config.secret.php</code>. Submissions are always saved under Forms → Entries even if email fails.</div>
+        <div class="si-sec"><h2>Contact-Form Email</h2><div class="desc">Send a test email through the same transport your forms use, to check delivery. Email is configured server-side in <code>admin/config.secret.php</code>. Submissions are always saved under Forms → Entries even if email fails.</div>
           <div class="fg"><label>Send test to</label><input type="email" id="s-test-email" placeholder="you@yourdomain.com"><small>Leave blank to use your configured notify address.</small></div>
           <button class="fd-btn-primary" onclick="sendTestEmail(this)">Send test email</button>
           <div id="s-test-email-result" style="margin-top:10px;font-size:12px"></div>
