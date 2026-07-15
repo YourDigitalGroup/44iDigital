@@ -26,7 +26,7 @@
 
    CUSTOMIZE — either edit the CONFIG block below, or define overrides
    BEFORE the script tag:
-       <script>window.WILLOW_CONFIG={accent:'#0E7A6E'};</script>
+       <script>window.WILLOW_CONFIG={accent:'#629ad0'};</script>
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
