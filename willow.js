@@ -53,8 +53,8 @@
     formId: 'willow-partner-bot',            // groups entries under Forms
     subject: 'New Willow Chat Lead',         // email subject prefix
     phone: '605-334-4464',
-    accent: '#0E7A6E',                       // teal
-    dark: '#101C33',                         // navy header
+    accent: '#629ad0',                       // 44i Digital brand primary (blue)
+    dark: '#2c4863',                         // 44i Digital brand secondary (navy)
     mode: 'auto',                            // 'bubble' | 'inline' | 'auto'
     teaser: 'Hi! Exploring a 44i partnership? I can help.',
     recaptchaSiteKey: '',                    // set only if site enforces reCAPTCHA v3
@@ -202,20 +202,32 @@
   }
 
   /* ── styles ────────────────────────────────────────────────────────────── */
+  // Manrope is 44idigital.com's site font — used when the page loads it,
+  // with system fallbacks everywhere else.
+  var FONT = "'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
   var CSS = ''
     + ':root{--wlw-accent:' + C.accent + ';--wlw-dark:' + C.dark + '}'
     + '.wlw-hidden{display:none !important}'
-    + '.wlw-launch{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;padding:0;background:var(--wlw-dark);box-shadow:0 8px 28px rgba(16,28,51,.35);transition:transform .15s ease}'
+    + 'html.wlw-noscroll,html.wlw-noscroll body{overflow:hidden !important}'
+    + '.wlw-launch{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;padding:0;background:var(--wlw-dark);box-shadow:0 8px 28px rgba(44,72,99,.35);transition:transform .15s ease}'
     + '.wlw-launch:hover{transform:scale(1.06)}'
     + '.wlw-launch img,.wlw-launch svg{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:3px solid var(--wlw-accent);box-sizing:border-box}'
     + '.wlw-launch .wlw-dot{position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#22c55e;border:2px solid #fff}'
-    + '.wlw-teaser{position:fixed;right:96px;bottom:34px;z-index:2147483000;background:#fff;color:#1a2437;font:500 13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:12px 14px;border-radius:14px 14px 4px 14px;box-shadow:0 10px 30px rgba(16,28,51,.22);max-width:240px;cursor:pointer}'
+    + '.wlw-teaser{position:fixed;right:96px;bottom:34px;z-index:2147483000;background:#fff;color:#2c4863;font:500 13.5px/1.45 ' + FONT + ';padding:12px 14px;border-radius:14px 14px 4px 14px;box-shadow:0 10px 30px rgba(44,72,99,.22);max-width:240px;cursor:pointer}'
     + '.wlw-teaser b{color:var(--wlw-accent)}'
     + '.wlw-teaser .wlw-x{position:absolute;top:-8px;left:-8px;width:20px;height:20px;border-radius:50%;background:#334;color:#fff;border:none;font-size:11px;line-height:20px;text-align:center;cursor:pointer;padding:0}'
-    + '.wlw-panel{position:fixed;right:20px;bottom:96px;z-index:2147483001;width:390px;max-width:calc(100vw - 24px);height:640px;max-height:calc(100vh - 120px);display:flex;flex-direction:column;background:#f6f7f9;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(16,28,51,.35);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;opacity:0;transform:translateY(14px) scale(.98);pointer-events:none;transition:opacity .2s ease,transform .2s ease}'
+    + '.wlw-panel{position:fixed;right:20px;bottom:96px;z-index:2147483001;width:390px;max-width:calc(100vw - 24px);height:640px;max-height:calc(100vh - 120px);display:flex;flex-direction:column;background:#f6f6f8;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(44,72,99,.35);font-family:' + FONT + ';opacity:0;transform:translateY(14px) scale(.98);pointer-events:none;transition:opacity .2s ease,transform .2s ease}'
     + '.wlw-panel.wlw-open{opacity:1;transform:none;pointer-events:auto}'
-    + '.wlw-inline .wlw-panel{position:static;width:100%;max-width:520px;height:640px;margin:0 auto;opacity:1;transform:none;pointer-events:auto;box-shadow:0 12px 44px rgba(16,28,51,.18)}'
-    + '@media(max-width:520px){.wlw-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100%;max-height:100dvh;border-radius:0}}'
+    + '.wlw-inline .wlw-panel{position:static;width:100%;max-width:520px;height:640px;margin:0 auto;opacity:1;transform:none;pointer-events:auto;box-shadow:0 12px 44px rgba(44,72,99,.18)}'
+    /* Mobile = a texting app: the panel takes the whole screen and slides up
+       from the bottom like a native messages view. */
+    + '@media(max-width:640px){'
+    +   '.wlw-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .2s ease}'
+    +   '.wlw-panel.wlw-open{transform:none}'
+    +   '.wlw-panel.wlw-open~.wlw-launch,.wlw-panel.wlw-open~.wlw-teaser{display:none}'
+    + '}'
+    /* Fullscreen promotion for the INLINE embed on mobile (added on first tap) */
+    + '.wlw-fs .wlw-panel{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;border-radius:0;z-index:2147483001;transform:none;transition:none}'
     + '.wlw-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--wlw-dark);color:#fff;flex:0 0 auto}'
     + '.wlw-head .wlw-av{position:relative;width:44px;height:44px;flex:0 0 44px}'
     + '.wlw-head .wlw-av img,.wlw-head .wlw-av svg{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;border:2px solid var(--wlw-accent);box-sizing:border-box}'
@@ -225,18 +237,19 @@
     + '.wlw-head .wlw-sub{font-size:11.5px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
     + '.wlw-head button{background:none;border:none;color:#fff;opacity:.7;cursor:pointer;font-size:16px;padding:6px;line-height:1}'
     + '.wlw-head button:hover{opacity:1}'
-    + '.wlw-body{flex:1 1 auto;overflow-y:auto;padding:18px 14px 8px;scroll-behavior:smooth}'
-    + '.wlw-row{display:flex;gap:8px;margin:0 0 12px;align-items:flex-end}'
+    + '.wlw-body{flex:1 1 auto;overflow-y:auto;padding:18px 14px 8px;scroll-behavior:smooth;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}'
+    + '.wlw-row{display:flex;gap:8px;margin:0 0 12px;align-items:flex-end;animation:wlwIn .25s ease}'
+    + '@keyframes wlwIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}'
     + '.wlw-row .wlw-mav{width:28px;height:28px;flex:0 0 28px}'
     + '.wlw-row .wlw-mav img,.wlw-row .wlw-mav svg{width:28px;height:28px;border-radius:50%;object-fit:cover;display:block}'
-    + '.wlw-msg{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}'
-    + '.wlw-bot .wlw-msg{background:#fff;color:#1a2437;border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(16,28,51,.08)}'
+    + '.wlw-msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}'
+    + '.wlw-bot .wlw-msg{background:#fff;color:#2c4863;border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(44,72,99,.08)}'
     + '.wlw-user{justify-content:flex-end}'
     + '.wlw-user .wlw-msg{background:var(--wlw-accent);color:#fff;border-bottom-right-radius:4px}'
-    + '.wlw-typing{display:inline-flex;gap:4px;padding:13px 15px}'
-    + '.wlw-typing i{width:7px;height:7px;border-radius:50%;background:#9aa3b2;animation:wlwB 1.1s infinite}'
-    + '.wlw-typing i:nth-child(2){animation-delay:.18s}.wlw-typing i:nth-child(3){animation-delay:.36s}'
-    + '@keyframes wlwB{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-5px);opacity:1}}'
+    + '.wlw-typing{display:inline-flex;gap:5px;padding:14px 16px}'
+    + '.wlw-typing i{width:8px;height:8px;border-radius:50%;background:#8499ab;animation:wlwB 1.2s infinite}'
+    + '.wlw-typing i:nth-child(2){animation-delay:.2s}.wlw-typing i:nth-child(3){animation-delay:.4s}'
+    + '@keyframes wlwB{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-5px);opacity:1}}'
     + '.wlw-opts{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px 36px}'
     + '.wlw-opt{background:#fff;border:1.5px solid var(--wlw-accent);color:var(--wlw-accent);border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;transition:background .12s,color .12s;font-family:inherit}'
     + '.wlw-opt:hover{background:var(--wlw-accent);color:#fff}'
@@ -246,13 +259,16 @@
     + '.wlw-links{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px 36px}'
     + '.wlw-link{display:inline-block;background:var(--wlw-accent);color:#fff !important;text-decoration:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700}'
     + '.wlw-link.wlw-alt{background:#fff;color:var(--wlw-accent) !important;border:1.5px solid var(--wlw-accent)}'
-    + '.wlw-foot{flex:0 0 auto;padding:10px 12px;background:#fff;border-top:1px solid #e5e8ee}'
-    + '.wlw-inrow{display:flex;gap:8px}'
-    + '.wlw-inrow input{flex:1;border:1.5px solid #d5dae3;border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;outline:none;min-width:0}'
-    + '.wlw-inrow input:focus{border-color:var(--wlw-accent)}'
-    + '.wlw-inrow button{background:var(--wlw-accent);color:#fff;border:none;border-radius:10px;padding:0 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}'
+    /* Message-style composer: pill input + round send button, like a texting app */
+    + '.wlw-foot{flex:0 0 auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #e6e8ec}'
+    + '.wlw-inrow{display:flex;gap:8px;align-items:center}'
+    + '.wlw-inrow input{flex:1;border:1.5px solid #d5dae3;border-radius:999px;padding:11px 18px;font-size:16px;font-family:inherit;outline:none;min-width:0;background:#f6f6f8}'
+    + '.wlw-inrow input:focus{border-color:var(--wlw-accent);background:#fff}'
+    + '.wlw-inrow button{flex:0 0 42px;width:42px;height:42px;background:var(--wlw-accent);color:#fff;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s ease}'
+    + '.wlw-inrow button:hover{transform:scale(1.08)}'
     + '.wlw-inrow button:disabled{opacity:.5;cursor:not-allowed}'
-    + '.wlw-brand{text-align:center;font-size:10.5px;color:#9aa3b2;padding:6px 0 2px}'
+    + '.wlw-inrow button svg{width:18px;height:18px;display:block}'
+    + '.wlw-brand{text-align:center;font-size:10.5px;color:#8499ab;padding:6px 0 2px}'
     + '.wlw-err .wlw-msg{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}';
 
   /* ── avatar (photo with monogram fallback) ─────────────────────────────── */
@@ -278,6 +294,11 @@
   var mode = C.mode !== 'auto' ? C.mode
     : (inlineHost || (scriptEl && scriptEl.getAttribute('data-willow-mode') === 'inline')) ? 'inline' : 'bubble';
 
+  // Phone-sized viewport → the chat behaves like a native texting app:
+  // full screen, page scroll locked behind it.
+  var mqMobile = window.matchMedia ? window.matchMedia('(max-width:640px)') : { matches: false };
+  function lockScroll(on) { try { document.documentElement.classList.toggle('wlw-noscroll', on); } catch (e) {} }
+
   var style = document.createElement('style');
   style.id = 'willow-css';
   style.textContent = CSS;
@@ -297,10 +318,13 @@
     +   '<div class="wlw-av" data-mono=\'' + MONO + '\'>' + avatarHtml() + '<span class="wlw-dot"></span></div>'
     +   '<div class="wlw-who"><div class="wlw-name">' + escAttr(C.name) + '</div><div class="wlw-sub">' + escAttr(C.tagline) + '</div></div>'
     +   '<button type="button" class="wlw-restart" title="Start over" aria-label="Start over">&#8635;</button>'
+    +   (mode === 'inline' ? '<button type="button" class="wlw-min wlw-hidden" title="Minimize" aria-label="Minimize chat" style="font-size:20px">&#8964;</button>' : '')
     +   (mode === 'bubble' ? '<button type="button" class="wlw-close" title="Close" aria-label="Close chat">&#10005;</button>' : '')
     + '</div>'
     + '<div class="wlw-body" aria-live="polite"></div>'
-    + '<div class="wlw-foot wlw-hidden"><div class="wlw-inrow"><input type="text" autocomplete="off"><button type="button">Send</button></div></div>'
+    + '<div class="wlw-foot wlw-hidden"><div class="wlw-inrow"><input type="text" autocomplete="off">'
+    +   '<button type="button" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>'
+    + '</div></div>'
     + '<div class="wlw-brand">Powered by 44i Digital</div>';
   root.appendChild(panel);
 
@@ -340,12 +364,34 @@
   function setOpen(open) {
     state.open = open;
     panel.classList.toggle('wlw-open', open);
+    lockScroll(open && mqMobile.matches);
     if (open) {
       killTeaser();
       if (!started) startConversation();
       scrollEnd();
     }
     persist();
+  }
+
+  // Inline embeds on mobile: the first tap into the chat promotes it to a
+  // full-screen texting view; the ⌄ button in the header drops it back inline.
+  if (mode === 'inline') {
+    var minBtn = panel.querySelector('.wlw-min');
+    var setFs = function (on) {
+      root.classList.toggle('wlw-fs', on);
+      lockScroll(on);
+      if (minBtn) minBtn.classList.toggle('wlw-hidden', !on);
+      scrollEnd();
+    };
+    panel.addEventListener('click', function (e) {
+      if (!mqMobile.matches || root.classList.contains('wlw-fs')) return;
+      if (e.target.closest && e.target.closest('.wlw-min')) return;
+      setFs(true);
+    });
+    input.addEventListener('focus', function () {
+      if (mqMobile.matches && !root.classList.contains('wlw-fs')) setFs(true);
+    });
+    if (minBtn) minBtn.addEventListener('click', function (e) { e.stopPropagation(); setFs(false); });
   }
 
   panel.querySelector('.wlw-restart').addEventListener('click', function () {
@@ -419,7 +465,10 @@
       if (i >= list.length) { if (done) done(); return; }
       showTyping();
       var t = list[i];
-      var delay = Math.min(350 + t.length * 9, 1300);
+      // "Willow is typing…" — dots linger proportionally to message length
+      // (with a touch of jitter) so replies feel humanly typed, capped so
+      // long messages never drag.
+      var delay = Math.min(600 + t.length * 11 + Math.random() * 300, 2000);
       setTimeout(function () {
         hideTyping();
         addBot(t);

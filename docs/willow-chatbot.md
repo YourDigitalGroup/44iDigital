@@ -70,14 +70,17 @@ tag:
 ```html
 <script>
   window.WILLOW_CONFIG = {
-    accent: '#0E7A6E',          // teal accents / user bubbles
-    dark:   '#101C33',          // navy header + launcher
+    accent: '#629ad0',          // brand primary — chips, user bubbles, send
+    dark:   '#2c4863',          // brand secondary — header + launcher
     teaser: 'Questions about partnering with 44i?',
     avatar: 'images/willow.jpg' // if you keep media in a folder
   };
 </script>
 <script src="/willow.js" defer></script>
 ```
+
+Defaults match 44idigital.com's palette (`#629ad0` / `#2c4863`) and use the
+site's Manrope font when the page loads it.
 
 ### Editing the question tree
 
@@ -107,4 +110,8 @@ substituted in messages.
   `WILLOW_CONFIG.recaptchaSiteKey` so submissions pass verification.
 - If the submit fails (network, server), Willow apologizes, offers a retry
   button, and gives the phone number as a fallback.
-- Mobile: the bubble panel goes full-screen under 520px.
+- Willow shows animated typing dots before each reply, paced to message
+  length, so the conversation feels naturally typed.
+- Mobile (≤ 640px) feels like a texting app: opening the bubble slides the
+  chat up full-screen and locks page scroll; tapping into an inline embed
+  promotes it to full-screen too (the ⌄ header button drops it back inline).
