@@ -3,7 +3,8 @@
 Willow is a smart-form chat bot (`willow.js`, site root). She walks visitors
 through the partner-qualification tree — organization type → goals → follow-up
 → program maturity → seller count → timeline — then collects **name, company,
-email and phone** and submits everything through the CMS.
+email and phone**, asks an open-ended "anything you'd like to ask about the
+program?" (free text, with a skip chip), and submits everything through the CMS.
 
 It's a plain form under the hood: no AI, no external services, no dependencies.
 Every conversation path is defined in the question tree inside `willow.js`.
@@ -92,7 +93,7 @@ in the file. Node types:
 | `say` | Willow speaks `messages`, then goes to `next` |
 | `choice` | one-tap buttons; each option carries its own `next` (this is the branching) |
 | `multi` | pick-all-that-apply chips + Continue; one shared `next` |
-| `text` / `email` / `phone` | typed answer with validation, then `next` |
+| `text` / `email` / `phone` | typed answer with validation, then `next`; add `skipLabel` to make it optional (renders a skip chip beside the input) |
 | `submit` | sends everything to the CMS, then speaks `messages` |
 | `end` | closing messages + optional link buttons; sends nothing |
 

@@ -152,11 +152,20 @@
       cName:    { type: 'text',  saveAs: 'Name',    message: "What's your name?", placeholder: 'First and last name', next: 'cCompany' },
       cCompany: { type: 'text',  saveAs: 'Company', message: 'And your company or organization?', placeholder: 'Company name', next: 'cEmail' },
       cEmail:   { type: 'email', saveAs: 'Email',   message: 'What email should we use to reach you?', placeholder: 'you@company.com', next: 'cPhone' },
-      cPhone:   { type: 'phone', saveAs: 'Phone',   message: 'And the best phone number? Partner conversations usually start with a quick call.', placeholder: '(555) 555-5555', next: 'finish' },
+      cPhone:   { type: 'phone', saveAs: 'Phone',   message: 'And the best phone number? Partner conversations usually start with a quick call.', placeholder: '(555) 555-5555', next: 'cQuestions' },
+
+      /* Open-ended: whatever the visitor types lands in the email, the entry,
+         and the GHL note. `skipLabel` renders a quick-reply chip so answering
+         is optional. */
+      cQuestions: { type: 'text', saveAs: 'Questions for the team',
+        message: "Last one, {firstName} — is there anything you'd like to ask about the program, our products, or how the partnership works? Type anything; I'll make sure the team covers it in your conversation.",
+        placeholder: 'Ask me anything…',
+        skipLabel: 'No questions right now',
+        next: 'finish' },
 
       finish: { type: 'submit', messages: [
         'Thank you, {firstName}! ✅',
-        "I've passed your details to our partner team — they'll reach out shortly to schedule your partner conversation.",
+        "I've passed everything along to our partner team — they'll reach out shortly to schedule your partner conversation.",
         'Prefer to talk sooner? Call us at {phone}.'
       ] }
     }
@@ -216,7 +225,9 @@
     + '.wlw-teaser{position:fixed;right:96px;bottom:34px;z-index:2147483000;background:#fff;color:#2c4863;font:500 13.5px/1.45 ' + FONT + ';padding:12px 14px;border-radius:14px 14px 4px 14px;box-shadow:0 10px 30px rgba(44,72,99,.22);max-width:240px;cursor:pointer}'
     + '.wlw-teaser b{color:var(--wlw-accent)}'
     + '.wlw-teaser .wlw-x{position:absolute;top:-8px;left:-8px;width:20px;height:20px;border-radius:50%;background:#334;color:#fff;border:none;font-size:11px;line-height:20px;text-align:center;cursor:pointer;padding:0}'
-    + '.wlw-panel{position:fixed;right:20px;bottom:96px;z-index:2147483001;width:390px;max-width:calc(100vw - 24px);height:640px;max-height:calc(100vh - 120px);display:flex;flex-direction:column;background:#f6f6f8;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(44,72,99,.35);font-family:' + FONT + ';opacity:0;transform:translateY(14px) scale(.98);pointer-events:none;transition:opacity .2s ease,transform .2s ease}'
+    /* color + color-scheme are pinned so a dark-themed host page can never
+       restyle the chat's text or form controls into invisibility */
+    + '.wlw-panel{position:fixed;right:20px;bottom:96px;z-index:2147483001;width:390px;max-width:calc(100vw - 24px);height:640px;max-height:calc(100vh - 120px);display:flex;flex-direction:column;background:#f6f6f8;color:#2c4863;color-scheme:light;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(44,72,99,.35);font-family:' + FONT + ';opacity:0;transform:translateY(14px) scale(.98);pointer-events:none;transition:opacity .2s ease,transform .2s ease}'
     + '.wlw-panel.wlw-open{opacity:1;transform:none;pointer-events:auto}'
     + '.wlw-inline .wlw-panel{position:static;width:100%;max-width:520px;height:640px;margin:0 auto;opacity:1;transform:none;pointer-events:auto;box-shadow:0 12px 44px rgba(44,72,99,.18)}'
     /* Mobile = a texting app: the panel takes the whole screen and slides up
@@ -262,7 +273,8 @@
     /* Message-style composer: pill input + round send button, like a texting app */
     + '.wlw-foot{flex:0 0 auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #e6e8ec}'
     + '.wlw-inrow{display:flex;gap:8px;align-items:center}'
-    + '.wlw-inrow input{flex:1;border:1.5px solid #d5dae3;border-radius:999px;padding:11px 18px;font-size:16px;font-family:inherit;outline:none;min-width:0;background:#f6f6f8}'
+    + '.wlw-inrow input{flex:1;border:1.5px solid #d5dae3;border-radius:999px;padding:11px 18px;font-size:16px;font-family:inherit;outline:none;min-width:0;background:#f6f6f8;color:#2c4863;caret-color:#2c4863}'
+    + '.wlw-inrow input::placeholder{color:#8499ab;opacity:1}'
     + '.wlw-inrow input:focus{border-color:var(--wlw-accent);background:#fff}'
     + '.wlw-inrow button{flex:0 0 42px;width:42px;height:42px;background:var(--wlw-accent);color:#fff;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s ease}'
     + '.wlw-inrow button:hover{transform:scale(1.08)}'
@@ -493,6 +505,26 @@
     input.value = '';
     input.placeholder = node.placeholder || 'Type your answer…';
     input.type = node.type === 'email' ? 'email' : (node.type === 'phone' ? 'tel' : 'text');
+    // Optional questions render a skip chip alongside the open input.
+    var skipWrap = null;
+    if (node.skipLabel) {
+      skipWrap = document.createElement('div');
+      skipWrap.className = 'wlw-opts';
+      var sb = document.createElement('button');
+      sb.type = 'button';
+      sb.className = 'wlw-opt';
+      sb.textContent = node.skipLabel;
+      sb.addEventListener('click', function () {
+        skipWrap.remove();
+        hideInput();
+        addUser(node.skipLabel); logPush('user', node.skipLabel);
+        saveAnswer(node.saveAs, node.skipLabel);
+        go(node.next);
+      });
+      skipWrap.appendChild(sb);
+      body.appendChild(skipWrap);
+      scrollEnd();
+    }
     inputHandler = function () {
       var v = input.value.trim();
       if (!v) return;
@@ -503,6 +535,7 @@
         botSay(err);
         return;
       }
+      if (skipWrap) skipWrap.remove();
       hideInput();
       addUser(v); logPush('user', v);
       saveAnswer(node.saveAs, v);
