@@ -1565,8 +1565,13 @@ textarea.fb-input{resize:vertical}
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
                   Scan Server
                 </button>
+                <button class="fd-btn-secondary" onclick="optimizeAllImages()" title="Resize, recompress, strip metadata, and set 72 DPI on every image" style="display:flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="13 2 13 9 20 9"/><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3"/><polyline points="9 3 4 3 4 8"/><polyline points="15 21 20 21 20 16"/></svg>
+                  Optimize All Images
+                </button>
               </div>
             </div>
+            <div id="media-optimize-log" class="log-box" style="margin-bottom:16px"></div>
             <div id="media-body" style="flex:1"><div class="empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><h3>No media yet</h3><p>Upload images, video, and documents.</p></div></div>
           </div>
           <!-- Detail panel -->
@@ -4587,6 +4592,44 @@ async function initMedia(){
   document.querySelectorAll('#media-filter .pill-group-btn').forEach((b,i)=>b.classList.toggle('on',i===0));
   const si=document.getElementById('media-search'); if(si) si.value='';
   renderMediaGrid();
+}
+// ── OPTIMIZE ALL IMAGES ─────────────────────────────────────────────
+// Resizes anything over 2000px on its long edge, recompresses, strips
+// EXIF/ICC metadata (respecting EXIF orientation first so portrait photos
+// don't end up sideways), and stamps every JPEG/PNG to 72 DPI. Runs one
+// file per request so a single huge image can't time out the whole batch —
+// same pattern as "Convert all" forms. Overwrites files on the server in
+// place, so this asks for confirmation up front like any other bulk,
+// irreversible file action.
+function humanBytes(n){
+  if(n>=1048576) return (n/1048576).toFixed(1)+' MB';
+  if(n>=1024) return Math.round(n/1024)+' KB';
+  return n+' B';
+}
+async function optimizeAllImages(){
+  if(!Object.keys(_media||{}).length){ await initMedia(); }
+  const items=(_media||[]).filter(m=>/\.(jpe?g|png|webp)$/i.test(m.name||''));
+  if(!items.length){ toast('No optimizable images found (JPEG/PNG/WebP) — SVG, GIF, and ICO are left as-is','err'); return; }
+  if(!confirm('Optimize '+items.length+' image'+(items.length===1?'':'s')+'? Each one is resized (max 2000px), recompressed, stripped of embedded metadata, and set to 72 DPI, overwriting the file on the server. Animated WebP is skipped automatically so animation isn\'t destroyed. This can\'t be undone from here — make sure you have a way to recover originals if you need them.')) return;
+  const log=document.getElementById('media-optimize-log');
+  log.className='log-box on'; log.innerHTML='';
+  const ll=m=>{log.innerHTML+='<div>'+m+'</div>';log.scrollTop=log.scrollHeight;};
+  ll('<span class="l-info">Optimizing '+items.length+' image(s)…</span>');
+  let done=0, skipped=0, failed=0, savedBytes=0;
+  for(const it of items){
+    try{
+      const r=await apiCall('optimize_image',{path:it.path});
+      if(r.error) throw new Error(r.error);
+      if(r.skipped){ skipped++; ll('<span class="l-info">—</span> '+esc(it.name)+' — '+esc(r.reason||'skipped')); }
+      else{
+        done++; savedBytes+=Math.max(0,(r.origBytes||0)-(r.newBytes||0));
+        ll('<span class="l-ok">✓</span> '+esc(it.name)+' — '+humanBytes(r.origBytes)+' → '+humanBytes(r.newBytes)+(r.resized?' (resized to '+r.width+'×'+r.height+')':''));
+      }
+    }catch(e){ failed++; ll('<span class="l-err">✗</span> '+esc(it.name)+': '+esc(e.message)); }
+  }
+  ll('<span class="l-ok" style="font-weight:700">✓ Done — '+done+' optimized, '+skipped+' already optimal'+(failed?(', '+failed+' failed'):'')+' — saved '+humanBytes(savedBytes)+'</span>');
+  toast('Optimized '+done+' image'+(done===1?'':'s')+(failed?(' · '+failed+' failed'):'')+' — saved '+humanBytes(savedBytes), failed&&!done?'err':'ok');
+  _media=[]; await initMedia();
 }
 function selMedia(i){
   const m=_media[i]; if(!m) return;
