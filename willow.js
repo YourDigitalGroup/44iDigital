@@ -165,8 +165,11 @@
 
       finish: { type: 'submit', messages: [
         'Thank you, {firstName}! ✅',
-        "I've passed everything along to our partner team — they'll reach out shortly to schedule your partner conversation.",
-        'Prefer to talk sooner? Call us at {phone}.'
+        "I've passed everything along to our partner team.",
+        'Want to lock in a time right now? Grab a spot on our calendar — or if you prefer, the team will reach out shortly to schedule your partner conversation.'
+      ], links: [
+        { label: 'Schedule your partner conversation', url: 'https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar' },
+        { label: 'Call 605-334-4464', url: 'tel:16053344464' }
       ] }
     }
   };
@@ -280,7 +283,6 @@
     + '.wlw-inrow button:hover{transform:scale(1.08)}'
     + '.wlw-inrow button:disabled{opacity:.5;cursor:not-allowed}'
     + '.wlw-inrow button svg{width:18px;height:18px;display:block}'
-    + '.wlw-brand{text-align:center;font-size:10.5px;color:#8499ab;padding:6px 0 2px}'
     + '.wlw-err .wlw-msg{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}';
 
   /* ── avatar (photo with monogram fallback) ─────────────────────────────── */
@@ -336,8 +338,7 @@
     + '<div class="wlw-body" aria-live="polite"></div>'
     + '<div class="wlw-foot wlw-hidden"><div class="wlw-inrow"><input type="text" autocomplete="off">'
     +   '<button type="button" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>'
-    + '</div></div>'
-    + '<div class="wlw-brand">Powered by 44i Digital</div>';
+    + '</div></div>';
   root.appendChild(panel);
 
   var body = panel.querySelector('.wlw-body');
@@ -693,8 +694,16 @@
     document.head.appendChild(s);
   }
 
+  // Closing beat after a successful submit: thanks + the booking-calendar
+  // link buttons, so the visitor can schedule on the spot.
+  function finishUp(node) {
+    botSay(node.messages, function () {
+      if (node.links) { addLinks(node.links); logPush('bot', '', { links: node.links }); }
+    });
+  }
+
   function submitLead(node) {
-    if (state.done) { botSay(node.messages, null); return; }
+    if (state.done) { finishUp(node); return; }
     showTyping();
     recaptchaToken(function (token) {
       var payload = {
@@ -714,7 +723,7 @@
         if (!res.ok) throw new Error(res.err || 'send failed');
         state.done = true;
         persist();
-        botSay(node.messages, null);
+        finishUp(node);
       }).catch(function () {
         hideTyping();
         addBot("I'm so sorry — something went wrong sending your details. Please try again, or call us directly at " + C.phone + '.');
