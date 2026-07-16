@@ -850,13 +850,27 @@ function cmsSendForm($body) {
     // Store the submission in data/entries.json (best-effort, non-fatal)
     cmsStoreEntry($formId, $fields, $siteUrl);
 
-    // Push into GoHighLevel as a lead (best-effort; never blocks the form or email)
+    // Push into GoHighLevel as a lead (best-effort; never blocks the form or
+    // email). The outcome is captured — and exceptions are logged, never just
+    // swallowed — so a submission sent with debug_ghl:true gets the GHL result
+    // echoed back in the response for troubleshooting.
     $ghl = cmsGhlConfig();
-    if ($ghl) { try { cmsGhlPushLead($ghl['token'], $ghl['locationId'], $fields, $subject, $siteUrl); } catch (Throwable $e) { /* non-fatal */ } }
+    if ($ghl) {
+        try { $ghlResult = cmsGhlPushLead($ghl['token'], $ghl['locationId'], $fields, $subject, $siteUrl); }
+        catch (Throwable $e) {
+            $ghlResult = ['ok' => false, 'code' => 0, 'detail' => 'exception: ' . $e->getMessage()];
+            error_log('Fourge GHL push exception: ' . $e->getMessage());
+        }
+    } else {
+        $ghlResult = ['ok' => false, 'code' => 0, 'detail' => 'not configured — needs enabled toggle + token + Location ID in Plugins → GoHighLevel'];
+    }
+    $ghlOut = !empty($body['debug_ghl']) ? $ghlResult : null;
 
     if (!$toEmail) {
         // Entry already stored; report success even without email config
-        echo json_encode(['ok' => true, 'stored' => true, 'note' => 'Saved (no email configured)']); return;
+        $r = ['ok' => true, 'stored' => true, 'note' => 'Saved (no email configured)'];
+        if ($ghlOut) $r['ghl'] = $ghlOut;
+        echo json_encode($r); return;
     }
 
     $textLines = []; $htmlRows = '';
@@ -894,8 +908,8 @@ function cmsSendForm($body) {
             'from' => $fromEmail, 'fromName' => $fromName, 'to' => $toEmail, 'toName' => '',
             'replyTo' => $replyTo, 'replyName' => '', 'subject' => $subject, 'html' => $html, 'text' => $text,
         ], $err);
-        if ($sent) { echo json_encode(['ok' => true]); }
-        else { error_log('Fourge SMTP send failed: ' . $err); http_response_code(500); echo json_encode(['error' => 'Email could not be sent right now. Please try again, or contact us directly.']); }
+        if ($sent) { $r = ['ok' => true]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
+        else { error_log('Fourge SMTP send failed: ' . $err); http_response_code(500); $r = ['error' => 'Email could not be sent right now. Please try again, or contact us directly.']; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
         return;
     }
 
@@ -913,9 +927,9 @@ function cmsSendForm($body) {
     $curlErr= curl_error($ch);
     curl_close($ch);
 
-    if ($curlErr) { http_response_code(500); echo json_encode(['error' => 'Mail failed: '.$curlErr]); return; }
-    if ($code === 200) { echo json_encode(['ok' => true]); }
-    else { $d = json_decode($result, true); http_response_code(500); echo json_encode(['error' => 'Mailgun '.$code.': '.($d['message']??$result)]); }
+    if ($curlErr) { http_response_code(500); $r = ['error' => 'Mail failed: '.$curlErr]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); return; }
+    if ($code === 200) { $r = ['ok' => true]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
+    else { $d = json_decode($result, true); http_response_code(500); $r = ['error' => 'Mailgun '.$code.': '.($d['message']??$result)]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
 }
 
 // Admin-only diagnostic: send a real test email through the SAME transport the
