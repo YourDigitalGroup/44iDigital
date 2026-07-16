@@ -417,7 +417,13 @@
   });
 
   /* ── message rendering ─────────────────────────────────────────────────── */
-  function scrollEnd() { body.scrollTop = body.scrollHeight; }
+  // Pin the newest message to the bottom. The second pass (after a frame)
+  // matters: revealing the composer shrinks the message area AFTER the last
+  // message already scrolled, which used to leave it hidden behind the input.
+  function scrollEnd() {
+    body.scrollTop = body.scrollHeight;
+    requestAnimationFrame(function () { body.scrollTop = body.scrollHeight; });
+  }
 
   function addBot(text, opts) {
     var row = document.createElement('div');
@@ -542,9 +548,12 @@
       saveAnswer(node.saveAs, v);
       go(node.next);
     };
+    scrollEnd();   // the composer just appeared and shrank the message area
     setTimeout(function () { input.focus(); }, 150);
   }
   function hideInput() { foot.classList.add('wlw-hidden'); inputHandler = null; }
+  // Mobile keyboards resize the panel on focus — re-pin after they settle.
+  input.addEventListener('focus', function () { setTimeout(scrollEnd, 250); });
   sendBtn.addEventListener('click', function () { if (inputHandler) inputHandler(); });
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && inputHandler) { e.preventDefault(); inputHandler(); } });
 
