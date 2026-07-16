@@ -242,6 +242,7 @@ try {
         case 'write_file':  ob_end_clean(); cmsWriteFile($body); break;
         case 'upload':      ob_end_clean(); handleUpload();    break;
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
+        case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
         case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
@@ -510,6 +511,176 @@ function handleUpload() {
         }
     }
     echo json_encode(['results' => $results]);
+}
+
+// ── IMAGE OPTIMIZATION ("Optimize All Images") ─────────────────────────────
+// Downsizes to a sane max dimension, recompresses, strips EXIF/ICC metadata
+// (a side effect of GD re-encoding — respecting EXIF orientation FIRST so a
+// portrait photo doesn't end up sideways once that metadata is gone), and
+// stamps every JPEG/PNG to 72 DPI. Runs one image per request — the Media
+// panel loops over the library and calls this per-file, matching the
+// existing "Convert all" pattern — so one huge image can't time out a batch.
+//
+// Never enlarges a file: if recompression doesn't beat the original by more
+// than the few bytes a DPI chunk costs, the file is left untouched and
+// reported as already optimal. This protects the classic GD regression where
+// an indexed-palette PNG (flat-color logos/icons) gets re-saved as truecolor
+// and comes out BIGGER — that case is detected and skipped automatically.
+function fgeSetJpegDpi72($bytes) {
+    // JPEG: FFD8 (SOI) then markers. Replace/insert an APP0 JFIF segment
+    // with units=1 (inch), X/Y density = 72.
+    if (substr($bytes, 0, 2) !== "\xFF\xD8") return $bytes;
+    $app0 = "\xFF\xE0" . pack('n', 16) . "JFIF\x00" . "\x01\x02" . chr(1) . pack('n', 72) . pack('n', 72) . chr(0) . chr(0);
+    if (strlen($bytes) > 6 && substr($bytes, 2, 2) === "\xFF\xE0") {
+        $len = unpack('n', substr($bytes, 4, 2))[1];
+        return substr($bytes, 0, 2) . $app0 . substr($bytes, 2 + 2 + $len);
+    }
+    return substr($bytes, 0, 2) . $app0 . substr($bytes, 2);
+}
+function fgeSetPngDpi72($bytes) {
+    if (substr($bytes, 0, 8) !== "\x89PNG\x0d\x0a\x1a\x0a") return $bytes;
+    $ppu = (int)round(72 / 0.0254); // 72 dpi -> pixels per meter
+    $dataOnly = pack('N', $ppu) . pack('N', $ppu) . "\x01";
+    $chunk = pack('N', strlen($dataOnly)) . 'pHYs' . $dataOnly . pack('N', crc32('pHYs' . $dataOnly));
+    // Strip any existing pHYs chunk, then insert a fresh one right after IHDR.
+    $out = substr($bytes, 0, 8); // signature
+    $pos = 8; $ihdrInserted = false;
+    while ($pos < strlen($bytes)) {
+        $len = unpack('N', substr($bytes, $pos, 4))[1];
+        $type = substr($bytes, $pos + 4, 4);
+        $full = 4 + 4 + $len + 4;
+        if ($type === 'pHYs') { $pos += $full; continue; } // drop existing
+        $out .= substr($bytes, $pos, $full);
+        if ($type === 'IHDR' && !$ihdrInserted) { $out .= $chunk; $ihdrInserted = true; }
+        $pos += $full;
+    }
+    return $out;
+}
+// Read a JPEG/PNG's current DPI so an already-compliant file isn't rewritten
+// on every run, and so a DPI-only fix (tiny chunk overhead) can still be
+// forced through even when recompression alone doesn't shrink the file.
+function fgeReadJpegDpi($bytes) {
+    // Layout after SOI: FFE0, len(2), "JFIF\0"(5), version(2), unit(1),
+    // Xdensity(2), Ydensity(2) — unit/density sit at offsets 13/14-15.
+    if (substr($bytes, 0, 2) !== "\xFF\xD8" || substr($bytes, 2, 2) !== "\xFF\xE0") return null;
+    if (substr($bytes, 6, 5) !== "JFIF\x00") return null;
+    if (ord($bytes[13]) !== 1) return null; // 0 = aspect ratio only, 2 = per cm — not "dpi"
+    return unpack('n', substr($bytes, 14, 2))[1];
+}
+function fgeReadPngDpi($bytes) {
+    $pos = 8;
+    while ($pos < strlen($bytes)) {
+        $len = unpack('N', substr($bytes, $pos, 4))[1];
+        $type = substr($bytes, $pos + 4, 4);
+        if ($type === 'pHYs') {
+            $ppuX = unpack('N', substr($bytes, $pos + 8, 4))[1];
+            $unit = ord($bytes[$pos + 16]);
+            return $unit === 1 ? (int)round($ppuX * 0.0254) : null; // unit 0 = "unknown" (aspect only)
+        }
+        $pos += 4 + 4 + $len + 4;
+    }
+    return null;
+}
+function fgeReadImageForOptimize($path, $ext) {
+    switch ($ext) {
+        case 'jpg': case 'jpeg': return @imagecreatefromjpeg($path);
+        case 'png': return @imagecreatefrompng($path);
+        case 'webp': return @imagecreatefromwebp($path);
+        default: return false;
+    }
+}
+
+function cmsOptimizeImage($path, $maxDim = 2000, $jpegQuality = 82) {
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+        return ['skipped' => true, 'reason' => 'not a re-encodable image type (svg/gif/ico are left as-is)'];
+    }
+    if (!is_file($path) || !is_readable($path)) return ['skipped' => true, 'reason' => 'file not found'];
+
+    $origBytes = filesize($path);
+    $origRaw = file_get_contents($path);
+    if ($ext === 'webp' && strpos($origRaw, 'ANIM') !== false) {
+        return ['skipped' => true, 'reason' => 'animated WebP — skipped to avoid destroying the animation'];
+    }
+    $origDpi = ($ext === 'png') ? fgeReadPngDpi($origRaw) : fgeReadJpegDpi($origRaw);
+
+    $orientation = 1;
+    if (($ext === 'jpg' || $ext === 'jpeg') && function_exists('exif_read_data')) {
+        $exif = @exif_read_data($path);
+        if ($exif && isset($exif['Orientation'])) $orientation = (int)$exif['Orientation'];
+    }
+
+    $im = fgeReadImageForOptimize($path, $ext);
+    if (!$im) return ['skipped' => true, 'reason' => 'could not decode image'];
+
+    // Preserve transparency whether or not a resize happens below — GD's
+    // in-memory alpha flag does not default from the source file, so this
+    // must be set on the loaded image itself, not only on a resized copy.
+    if ($ext === 'png' || $ext === 'webp') {
+        imagealphablending($im, false);
+        imagesavealpha($im, true);
+    }
+
+    if ($orientation > 1) {
+        $rot = [3 => 180, 6 => 270, 8 => 90];
+        if (isset($rot[$orientation])) { $r = imagerotate($im, $rot[$orientation], 0); if ($r) { imagedestroy($im); $im = $r; } }
+        if (in_array($orientation, [2, 4, 5, 7], true)) imageflip($im, IMG_FLIP_HORIZONTAL);
+    }
+
+    $w = imagesx($im); $h = imagesy($im);
+    $resized = false;
+    $longEdge = max($w, $h);
+    if ($longEdge > $maxDim) {
+        $scale = $maxDim / $longEdge;
+        $nw = max(1, (int)round($w * $scale)); $nh = max(1, (int)round($h * $scale));
+        $canvas = imagecreatetruecolor($nw, $nh);
+        if ($ext === 'png' || $ext === 'webp') {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+            imagefilledrectangle($canvas, 0, 0, $nw, $nh, $transparent);
+        }
+        imagecopyresampled($canvas, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($im);
+        $im = $canvas; $w = $nw; $h = $nh; $resized = true;
+    }
+
+    ob_start();
+    if ($ext === 'jpg' || $ext === 'jpeg') { imageinterlace($im, true); imagejpeg($im, null, $jpegQuality); }
+    elseif ($ext === 'png') { imagepng($im, null, 6); }
+    else { imagewebp($im, null, 82); }
+    $newBytes = ob_get_clean();
+    imagedestroy($im);
+
+    if ($ext === 'jpg' || $ext === 'jpeg') $newBytes = fgeSetJpegDpi72($newBytes);
+    elseif ($ext === 'png') $newBytes = fgeSetPngDpi72($newBytes);
+
+    $newSize = strlen($newBytes);
+    $alreadyCompliant = !$resized && $origDpi === 72;
+    $worthForcing = !$alreadyCompliant && ($newSize <= $origBytes + 1024);
+    if (!$resized && !$worthForcing && $newSize >= $origBytes) {
+        return ['skipped' => true, 'reason' => 'already optimal', 'origBytes' => $origBytes, 'newBytes' => $origBytes];
+    }
+
+    file_put_contents($path, $newBytes);
+    return ['skipped' => false, 'origBytes' => $origBytes, 'newBytes' => $newSize, 'width' => $w, 'height' => $h, 'resized' => $resized];
+}
+
+function cmsApiOptimizeImage($body) {
+    $relPath = $body['path'] ?? '';
+    $safe = realpath(PUBLIC_HTML . '/' . $relPath);
+    if (!$safe || strpos($safe, PUBLIC_HTML) !== 0 || !is_file($safe)) {
+        http_response_code(404); echo json_encode(['error' => 'File not found']); return;
+    }
+    $maxDim = max(200, min(6000, (int)($body['maxDim'] ?? 2000)));
+    $quality = max(40, min(95, (int)($body['quality'] ?? 82)));
+    try {
+        $r = cmsOptimizeImage($safe, $maxDim, $quality);
+        echo json_encode(array_merge(['ok' => true], $r));
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    }
 }
 
 // ── DELETE FILE ───────────────────────────────────────────────────────────────
