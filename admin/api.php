@@ -117,6 +117,17 @@ define('SKIP_DIRS', [
 // Only the generated makeShell() output contains this exact string.
 define('CMS_PATTERN', 'src="../block-renderer.jsx"');
 
+// Integration constants — these MUST be defined here, above the action router.
+// The router dispatches handlers the moment it runs; a define() placed further
+// down the file has not executed yet, so a handler that touches it throws
+// "undefined constant". Inside send_form's best-effort try/catch that error was
+// swallowed silently — which is exactly how every GHL lead push failed without
+// a trace until the "Send test lead" diagnostic surfaced it.
+define('GHL_API_BASE', 'https://services.leadconnectorhq.com');
+define('GHL_API_VERSION', '2021-07-28');
+define('GA_CRED_FILE', __DIR__ . '/ga-service-account.json');
+define('GA_TOKEN_CACHE', __DIR__ . '/.ga-token.json');
+
 // ── HTTPS HELPERS ──────────────────────────────────────────────────────────
 // True when the request reached us over TLS. Also handles reverse proxies /
 // load balancers that terminate TLS at the edge and forward plain HTTP to PHP
@@ -587,8 +598,8 @@ function cmsVerifyRecaptcha($secret, $token, $threshold = 0.5) {
 // v2 API, using a Private Integration Token stored encrypted server-side — so no
 // GHL form is needed and the token never reaches the browser. Config lives in
 // data/site.json { ghl: { enabled, locationId } } + the encrypted 'ghl_token'.
-define('GHL_API_BASE', 'https://services.leadconnectorhq.com');
-define('GHL_API_VERSION', '2021-07-28');
+// GHL_API_BASE / GHL_API_VERSION are defined at the top of this file — they
+// must exist before the action router runs, not here.
 
 // Returns ['token'=>, 'locationId'=>] when GHL is enabled + fully configured, else null.
 function cmsGhlConfig() {
@@ -977,8 +988,8 @@ function cmsTestEmail($body) {
 // (never in public data/). Add the service account email as a Viewer on the
 // GA4 property: Admin → Property Access Management.
 
-define('GA_CRED_FILE',  __DIR__ . '/ga-service-account.json');
-define('GA_TOKEN_CACHE', __DIR__ . '/.ga-token.json');
+// GA_CRED_FILE / GA_TOKEN_CACHE are defined at the top of this file — they
+// must exist before the action router runs, not here.
 
 function gaSaveCredentials($body) {
     $json = $body['credentials'] ?? '';
