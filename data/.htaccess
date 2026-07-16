@@ -1,11 +1,14 @@
-# Fourge — deny direct HTTP access to the account seed file.
-# Accounts now live in the SQLite database (admin/fourge.db). data/users.json is
-# read ONLY server-side, once, to seed that database on first run. It is no
-# longer fetched by the browser, so blocking HTTP access closes the old public
-# exposure of password hashes. Other data/*.json (pages, posts, site, seo) stay
-# readable because the public site loads them. You may delete users.json
-# entirely once your live database has been seeded (after one successful login).
-<FilesMatch "^users\.json$">
+# Fourge — deny direct HTTP access to sensitive data files.
+# users.json: accounts now live in the SQLite database (admin/fourge.db); this
+#   file is read ONLY server-side, once, to seed that database on first run.
+#   Blocking HTTP access closes the old public exposure of password hashes. You
+#   may delete it entirely once your live database has been seeded.
+# entries.json: form submissions — visitor names, emails, and phone numbers.
+#   The admin reads it through the authenticated API (read_file), never over
+#   public HTTP, so nobody should be able to download it.
+# Other data/*.json (pages, posts, site, seo) stay readable because the public
+# site loads them.
+<FilesMatch "^(users|entries)\.json$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
