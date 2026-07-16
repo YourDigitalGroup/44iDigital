@@ -641,18 +641,29 @@ function cmsGhlMapContact($fields, $locationId, $formName, $siteUrl) {
     return ['contact' => $contact, 'note' => $note, 'hasContactInfo' => ($email !== '' || $phone !== '')];
 }
 
-// Push a submission to GHL. Best-effort; returns true when the contact upserts.
+// Push a submission to GHL. Best-effort — a failure never blocks the form —
+// but never silent: failures land in the PHP error log with the HTTP code and
+// response, and the same detail is returned so ghl_test's "Send test lead"
+// can show the exact reason. Returns ['ok'=>bool,'code'=>int,'detail'=>string].
 function cmsGhlPushLead($token, $locationId, $fields, $formName, $siteUrl) {
     $map = cmsGhlMapContact($fields, $locationId, $formName, $siteUrl);
-    if (!$map['hasContactInfo']) return false;   // no email/phone → nothing GHL can dedupe or act on
+    if (!$map['hasContactInfo']) return ['ok' => false, 'code' => 0, 'detail' => 'Submission has no email or phone — nothing for GHL to dedupe on'];
     $headers = ['Authorization: Bearer ' . $token, 'Version: ' . GHL_API_VERSION, 'Content-Type: application/json', 'Accept: application/json'];
     $ch = curl_init(GHL_API_BASE . '/contacts/upsert');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => $headers,
         CURLOPT_POSTFIELDS => json_encode($map['contact']), CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 12,
     ]);
-    $res = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code < 200 || $code >= 300 || !$res) return false;
+    $res = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $curlErr = curl_error($ch); curl_close($ch);
+    if ($curlErr) {
+        error_log('Fourge GHL push failed (network): ' . $curlErr);
+        return ['ok' => false, 'code' => 0, 'detail' => 'Could not reach GoHighLevel: ' . $curlErr];
+    }
+    if ($code < 200 || $code >= 300 || !$res) {
+        $snippet = trim(preg_replace('/\s+/', ' ', substr((string)$res, 0, 300)));
+        error_log('Fourge GHL push failed: HTTP ' . $code . ' — ' . $snippet);
+        return ['ok' => false, 'code' => $code, 'detail' => $snippet];
+    }
     $d = json_decode($res, true);
     $contactId = $d['contact']['id'] ?? ($d['id'] ?? '');
     if ($contactId && $map['note']) {   // attach the full submission as a note (best-effort)
@@ -663,7 +674,7 @@ function cmsGhlPushLead($token, $locationId, $fields, $formName, $siteUrl) {
         ]);
         curl_exec($ch2); curl_close($ch2);
     }
-    return true;
+    return ['ok' => true, 'code' => $code, 'detail' => ''];
 }
 
 // Validate token + location with a lightweight read. Returns [bool ok, string message].
@@ -689,6 +700,27 @@ function fourgeApiGhlTest($me, $body) {
     if ($token === '') { try { $token = (string)fourgeGetSecret(fourgeDb(), 'ghl_token'); } catch (Throwable $e) {} }
     $loc = trim((string)($body['locationId'] ?? ''));
     if ($token === '' || $loc === '') { echo json_encode(['ok' => false, 'message' => 'Enter the token and Location ID first.']); return; }
+
+    // mode:'push' — send a REAL test lead through the exact same code path as a
+    // form submission. "Test connection" only proves the token can READ
+    // contacts; a token missing the Edit Contacts (contacts.write) scope passes
+    // that test yet every lead push fails with a 403. This catches it.
+    if (($body['mode'] ?? '') === 'push') {
+        $email = trim((string)($body['email'] ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo json_encode(['ok' => false, 'message' => 'Enter a valid email address for the test lead first.']); return; }
+        $r = cmsGhlPushLead($token, $loc, ['Name' => 'Fourge Test Lead', 'Email' => $email], 'GHL write test', '');
+        if (!empty($r['ok'])) { echo json_encode(['ok' => true, 'message' => 'Test lead sent ✓ — check Contacts in GoHighLevel for "Fourge Test Lead" (tagged Website Lead).']); return; }
+        $msg = 'Lead push failed';
+        if ($r['code'] === 401)      $msg = 'Token rejected (401) — re-paste the Private Integration Token.';
+        elseif ($r['code'] === 403)  $msg = 'Write denied (403) — the token is missing the "Edit Contacts" (contacts.write) scope. Reads work, so Test connection passes while every lead push fails. Recreate the Private Integration token with BOTH View Contacts and Edit Contacts.';
+        elseif ($r['code'] === 404)  $msg = 'Not found (404) — check the Location ID.';
+        elseif ($r['code'] === 422 || $r['code'] === 400) $msg = 'GoHighLevel rejected the contact (' . $r['code'] . ') — usually a wrong Location ID. Detail: ' . $r['detail'];
+        elseif ($r['code'])          $msg = 'GoHighLevel returned HTTP ' . $r['code'] . ($r['detail'] !== '' ? ' — ' . $r['detail'] : '');
+        elseif ($r['detail'] !== '') $msg = $r['detail'];
+        echo json_encode(['ok' => false, 'message' => $msg]);
+        return;
+    }
+
     list($ok, $msg) = cmsGhlTest($token, $loc);
     echo json_encode(['ok' => $ok, 'message' => $msg]);
 }

@@ -5818,6 +5818,14 @@ function ghlAddonHtml(){
         <button class="fd-btn-ghost" onclick="testGhl()">Test connection</button>
         <a href="https://marketplace.gohighlevel.com/docs/Authorization/PrivateIntegrationsToken/" target="_blank" rel="noopener" class="pl-addon-link">How to get a token ↗</a>
       </div>
+      <div class="fg" style="margin-top:14px"><label>Send a test lead — the definitive check</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="email" id="s-ghl-test-email" placeholder="you@yourdomain.com" style="flex:1;min-width:180px">
+          <button class="fd-btn-secondary" onclick="testGhlPush(this)">Send test lead</button>
+        </div>
+        <div style="${hint}">Pushes a real contact ("Fourge Test Lead") through the exact same path as a form submission. <strong>Test connection only proves the token can read</strong> — a token missing the Edit Contacts scope passes it while every lead silently fails. This catches that, and shows GoHighLevel's exact error if anything is off. Delete the test contact in GHL afterwards.</div>
+        <div id="s-ghl-test-result" style="margin-top:8px;font-size:12px;line-height:1.5"></div>
+      </div>
     </div>
   </div>`;
 }
@@ -5846,6 +5854,28 @@ async function testGhl(){
     const d=await apiCall('ghl_test',{token,locationId});
     toast(d.message||(d.ok?'Connected ✓':'Connection failed'), d.ok?'ok':'err');
   }catch(e){ toast('Test failed: '+e.message,'err'); }
+}
+// The definitive GHL check: pushes a real "Fourge Test Lead" contact through
+// the same code path as a live form submission, and surfaces GHL's exact
+// error (e.g. missing write scope) in the card — errors can be long, so they
+// render inline rather than in a toast.
+async function testGhlPush(btn){
+  const token=document.getElementById('s-ghl-token')?.value.trim()||'';
+  const locationId=document.getElementById('s-ghl-location')?.value.trim()||'';
+  const email=document.getElementById('s-ghl-test-email')?.value.trim()||'';
+  const out=document.getElementById('s-ghl-test-result');
+  if(!email){ toast('Enter an email for the test lead first','err'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  if(out) out.textContent='';
+  try{
+    const d=await apiCall('ghl_test',{token,locationId,mode:'push',email});
+    if(out){ out.style.color=d.ok?'var(--ok,#16a34a)':'#dc2626'; out.textContent=d.message||(d.ok?'Test lead sent ✓':'Push failed'); }
+    toast(d.ok?'Test lead sent ✓':'Lead push failed — see details below the button', d.ok?'ok':'err');
+  }catch(e){
+    if(out){ out.style.color='#dc2626'; out.textContent='Test failed: '+e.message; }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Send test lead'; }
+  }
 }
 async function disableRecaptcha(){
   if(!_site.recaptcha||!_site.recaptcha.enabled){ toast('reCAPTCHA is already off'); return; }
