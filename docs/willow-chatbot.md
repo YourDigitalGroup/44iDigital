@@ -94,7 +94,7 @@ in the file. Node types:
 | `choice` | one-tap buttons; each option carries its own `next` (this is the branching) |
 | `multi` | pick-all-that-apply chips + Continue; one shared `next` |
 | `text` / `email` / `phone` | typed answer with validation, then `next`; add `skipLabel` to make it optional (renders a skip chip beside the input) |
-| `submit` | sends everything to the CMS, then speaks `messages` |
+| `submit` | sends everything to the CMS, then speaks `messages` and shows optional `links` buttons (used for the GHL booking calendar — `https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar` — so the visitor can schedule on the spot) |
 | `end` | closing messages + optional link buttons; sends nothing |
 
 `saveAs` on a node is the label used in the email/entry/GHL note. An option's

@@ -165,8 +165,11 @@
 
       finish: { type: 'submit', messages: [
         'Thank you, {firstName}! ✅',
-        "I've passed everything along to our partner team — they'll reach out shortly to schedule your partner conversation.",
-        'Prefer to talk sooner? Call us at {phone}.'
+        "I've passed everything along to our partner team.",
+        'Want to lock in a time right now? Grab a spot on our calendar — or if you prefer, the team will reach out shortly to schedule your partner conversation.'
+      ], links: [
+        { label: 'Schedule your partner conversation', url: 'https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar' },
+        { label: 'Call 605-334-4464', url: 'tel:16053344464' }
       ] }
     }
   };
@@ -691,8 +694,16 @@
     document.head.appendChild(s);
   }
 
+  // Closing beat after a successful submit: thanks + the booking-calendar
+  // link buttons, so the visitor can schedule on the spot.
+  function finishUp(node) {
+    botSay(node.messages, function () {
+      if (node.links) { addLinks(node.links); logPush('bot', '', { links: node.links }); }
+    });
+  }
+
   function submitLead(node) {
-    if (state.done) { botSay(node.messages, null); return; }
+    if (state.done) { finishUp(node); return; }
     showTyping();
     recaptchaToken(function (token) {
       var payload = {
@@ -712,7 +723,7 @@
         if (!res.ok) throw new Error(res.err || 'send failed');
         state.done = true;
         persist();
-        botSay(node.messages, null);
+        finishUp(node);
       }).catch(function () {
         hideTyping();
         addBot("I'm so sorry — something went wrong sending your details. Please try again, or call us directly at " + C.phone + '.');
