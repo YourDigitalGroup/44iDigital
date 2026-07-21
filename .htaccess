@@ -24,6 +24,17 @@
 #   Header always set Strict-Transport-Security "max-age=31536000"
 # </IfModule>
 
+# Redirect the old CMS "Posts" system (data/posts.json + posts.html, never
+# linked from the site nav) to the real, actively-linked /blog section — so
+# any old bookmarks/links to /posts land somewhere real instead of a page
+# nobody maintains. Query strings (posts.html?p=<slug>) are dropped since
+# /blog doesn't use that parameter — the trailing "?" clears it.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_URI} !^/(admin|data)/ [NC]
+  RewriteRule ^posts/?$ /blog? [R=301,L,NC]
+</IfModule>
+
 # Fourge — clean URLs.
 # Serve /page from /page.html and drop the .html from the public URL so each
 # page has one canonical, extensionless address (better for SEO). Files stay
