@@ -52,7 +52,7 @@
     api: '/admin/api.php',                   // Fourge CMS endpoint
     formId: 'willow-partner-bot',            // groups entries under Forms
     subject: 'New Willow Chat Lead',         // email subject prefix
-    phone: '605-334-4464',
+    phone: '605-271-7321',   // 44i Digital direct — NOT the 44i.com consumer line (605-334-4464), which only appears in the DTC redirect below
     accent: '#629ad0',                       // 44i Digital brand primary (blue)
     dark: '#2c4863',                         // 44i Digital brand secondary (navy)
     mode: 'auto',                            // 'bubble' | 'inline' | 'auto'
@@ -169,7 +169,7 @@
         'Want to lock in a time right now? Grab a spot on our calendar — or if you prefer, the team will reach out shortly to schedule your partner conversation.'
       ], links: [
         { label: 'Schedule your partner conversation', url: 'https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar' },
-        { label: 'Call 605-334-4464', url: 'tel:16053344464' }
+        { label: 'Call 605-271-7321', url: 'tel:16052717321' }
       ] }
     }
   };
