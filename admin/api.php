@@ -1000,6 +1000,113 @@ function cmsSmtpSend($opt, &$err) {
     return true;
 }
 
+// ── VISITOR CONFIRMATION EMAIL (44i Digital) ───────────────────────────────
+// Sent to whoever filled out ANY form on the site (Willow, Book a Demo, the
+// blog CTA forms) — a branded "thanks for reaching out" with a Book a Demo
+// button pointing at the GHL booking calendar, since submissions here are
+// reach-out-to-you leads, not scheduled appointments; this lets a visitor
+// self-schedule instead of waiting. Best-effort: failure here never blocks
+// the owner notification email or the form response.
+function cms44iBookingCalendarHtml() {
+    $url = 'https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar';
+    return '<tr><td align="center" style="padding:4px 0 8px">'
+        . '<table cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="#629ad0" style="border-radius:999px">'
+        . '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener" '
+        . 'style="display:inline-block;padding:14px 32px;font-family:Manrope,Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px">'
+        . 'Need to book a demo? Grab a time &rarr;</a>'
+        . '</td></tr></table></td></tr>';
+}
+
+function cms44iConfirmationHtml($name) {
+    $hi = $name !== '' ? 'Hi ' . htmlspecialchars($name) . ',' : 'Hi there,';
+    $logo = 'https://44idigital.com/assets/44i-digital-logo.svg';
+    return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f6f6f8;font-family:Manrope,Arial,sans-serif">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f6f8;padding:32px 16px">'
+        . '<tr><td align="center">'
+        . '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden">'
+
+        // header
+        . '<tr><td bgcolor="#2c4863" style="padding:32px 40px;text-align:center">'
+        . '<img src="' . $logo . '" alt="44i Digital" width="140" style="display:block;margin:0 auto;height:auto;border:0">'
+        . '</td></tr>'
+
+        // body
+        . '<tr><td style="padding:40px 40px 8px">'
+        . '<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#2c4863">' . $hi . '</p>'
+        . '<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#2c4863">'
+        . 'Thanks for reaching out about the 44i Digital white-label partner program! '
+        . "We've received your information, and a member of our partner team will be in touch shortly."
+        . '</p>'
+        . '<p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#2c4863">'
+        . "In the meantime, if you'd rather not wait for us to reach out, you're welcome to pick a time on our calendar yourself:"
+        . '</p>'
+        . '</td></tr>'
+
+        // CTA
+        . '<tr><td style="padding:0 40px 36px">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' . cms44iBookingCalendarHtml() . '</table>'
+        . '</td></tr>'
+
+        // footer
+        . '<tr><td bgcolor="#f6f6f8" style="padding:28px 40px;border-top:1px solid #e6e8ec">'
+        . '<p style="margin:0 0 4px;font-size:13px;line-height:1.6;color:#51708d">'
+        . '<strong style="color:#2c4863">44i Digital</strong><br>'
+        . '1600 S. Western Ave., Sioux Falls, SD 57105<br>'
+        . '<a href="tel:16052717321" style="color:#629ad0;text-decoration:none">605.271.7321</a>'
+        . ' &middot; <a href="https://44idigital.com" style="color:#629ad0;text-decoration:none">44idigital.com</a>'
+        . '</p>'
+        . '</td></tr>'
+
+        . '</table>'
+        . '</td></tr></table>'
+        . '</body></html>';
+}
+
+function cms44iConfirmationText($name) {
+    $hi = $name !== '' ? "Hi $name," : 'Hi there,';
+    return "$hi\n\n"
+        . "Thanks for reaching out about the 44i Digital white-label partner program! We've received "
+        . "your information, and a member of our partner team will be in touch shortly.\n\n"
+        . "Need to book a demo? Pick a time yourself instead of waiting for us to reach out:\n"
+        . "https://api.leadconnectorhq.com/widget/bookings/44idigitalcalendar\n\n"
+        . "44i Digital\n1600 S. Western Ave., Sioux Falls, SD 57105\n605.271.7321 · 44idigital.com\n";
+}
+
+function cms44iSendConfirmationEmail($toEmail, $name, $mg) {
+    $subject = "Thanks for reaching out to 44i Digital!";
+    $html = cms44iConfirmationHtml($name);
+    $text = cms44iConfirmationText($name);
+
+    if (cmsSmtpEnabled()) {
+        $fromRaw = trim((string)$mg['from']);
+        if ($fromRaw === '' || stripos($fromRaw, 'example.com') !== false) $fromRaw = SMTP_USER;
+        $fromEmail = $fromRaw; $fromName = '44i Digital';
+        if (preg_match('/^\s*(.*?)\s*<([^>]+)>\s*$/', $fromRaw, $mm)) { $fromName = trim($mm[1], " \"'") ?: '44i Digital'; $fromEmail = trim($mm[2]); }
+        if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) $fromEmail = SMTP_USER;
+        $err = '';
+        $sent = cmsSmtpSend([
+            'host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
+            'from' => $fromEmail, 'fromName' => $fromName, 'to' => $toEmail, 'toName' => $name,
+            'replyTo' => '', 'replyName' => '', 'subject' => $subject, 'html' => $html, 'text' => $text,
+        ], $err);
+        if (!$sent) error_log('Fourge 44i confirmation email (SMTP) failed: ' . $err);
+        return $sent;
+    }
+
+    $ch = curl_init('https://api.mailgun.net/v3/' . $mg['domain'] . '/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD        => 'api:' . $mg['key'],
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => ['from' => $mg['from'], 'to' => $toEmail, 'subject' => $subject, 'text' => $text, 'html' => $html],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $result = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $curlErr = curl_error($ch); curl_close($ch);
+    if ($curlErr || $code !== 200) { error_log('Fourge 44i confirmation email (Mailgun) failed: HTTP ' . $code . ' ' . $curlErr); return false; }
+    return true;
+}
+
 function cmsSendForm($body) {
     $mg      = cmsMailgun();
     $fields  = $body['fields']  ?? [];
@@ -1037,6 +1144,26 @@ function cmsSendForm($body) {
     }
     $ghlOut = !empty($body['debug_ghl']) ? $ghlResult : null;
 
+    // Reply-To / confirmation-target = the first submitted value that looks
+    // like an email address.
+    $replyTo = ''; foreach ($fields as $val) { $v = trim((string)$val); if (filter_var($v, FILTER_VALIDATE_EMAIL)) { $replyTo = $v; break; } }
+
+    // Confirmation email back to the visitor (best-effort — runs regardless
+    // of whether the OWNER notification below is even configured, since a
+    // site relying only on GHL for lead capture should still confirm to the
+    // visitor). Only sent when a submitted field looks like an email address.
+    if ($replyTo) {
+        $submitterName = '';
+        foreach ($fields as $k => $v) {
+            $key = strtolower((string)$k);
+            if (strpos($key, 'name') !== false && strpos($key, 'user') === false && strpos($key, 'file') === false) {
+                $submitterName = trim((string)$v); break;
+            }
+        }
+        try { cms44iSendConfirmationEmail($replyTo, $submitterName, $mg); }
+        catch (Throwable $e) { error_log('Fourge confirmation email exception: ' . $e->getMessage()); }
+    }
+
     if (!$toEmail) {
         // Entry already stored; report success even without email config
         $r = ['ok' => true, 'stored' => true, 'note' => 'Saved (no email configured)'];
@@ -1057,9 +1184,6 @@ function cmsSendForm($body) {
       <table style="width:100%;border-collapse:collapse;border:1px solid #eee">' . $htmlRows . '</table>
       <p style="font-size:11px;color:#A09882;margin-top:16px">Sent via Fourge CMS · ' . date('Y-m-d H:i') . '</p>
     </body></html>';
-
-    // Reply-To = the first submitted value that looks like an email address.
-    $replyTo = ''; foreach ($fields as $val) { $v = trim((string)$val); if (filter_var($v, FILTER_VALIDATE_EMAIL)) { $replyTo = $v; break; } }
 
     // Prefer SMTP when configured (a migrated site's existing SMTP creds work
     // as-is); otherwise fall through to the Mailgun HTTP API below.
