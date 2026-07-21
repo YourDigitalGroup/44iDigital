@@ -1019,7 +1019,7 @@ function cms44iBookingCalendarHtml() {
 
 function cms44iConfirmationHtml($name) {
     $hi = $name !== '' ? 'Hi ' . htmlspecialchars($name) . ',' : 'Hi there,';
-    $logo = 'https://44idigital.com/assets/44i-digital-logo.svg';
+    $logo = 'https://44idigital.com/assets/44i-digital-logo-reverse.svg'; // white variant — the header below is navy, same as the site's own footer
     return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f6f6f8;font-family:Manrope,Arial,sans-serif">'
         . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f6f8;padding:32px 16px">'
         . '<tr><td align="center">'
