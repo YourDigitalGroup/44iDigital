@@ -62,164 +62,26 @@
   });
 })();
 
-// ── Cookie consent widget ───────────────────────────────────────────────────
-// Gates one third-party script (processwebsitedata) behind consent. Default
-// is opt-out, not opt-in: on a first visit the visitor has a 5-second window
-// to decline, and if they don't (or they click Accept), the script loads.
-// A compact card in the bottom-left (out of Willow's way in the bottom-right)
-// rather than a full-width bar, and a small round tab persists after any
-// decision so consent can always be revisited — clicking it reopens the same
-// card, no timer this time since it's a deliberate revisit, not a first
-// encounter. Switching from Accept to Decline after the script already ran
-// this pageview can only stop it from loading on future visits — a page
-// already holding an executing script can't have that undone client-side.
+// ── Remove stray legacy chat widgets ────────────────────────────────────────
+// Old LeadConnector <chat-widget> embeds (pasted into custom code more than
+// once over time) keep showing up as duplicate chat bubbles. Rather than
+// hunt down every place a copy of that snippet may have been pasted, strip
+// any <chat-widget> element the moment it appears — whether it's already in
+// the DOM on load or gets inserted later by an async loader script.
 (function () {
-  var CONSENT_KEY = '44i_cookie_consent';   // localStorage value: 'accepted' | 'declined'
-  var GATE_MS = 5000;
-  var GATED_SRC = 'https://data.processwebsitedata.com/cscripts/CKS1vytzZR-dd6078b8.js';
-
-  function loadGatedScript() {
-    if (document.querySelector('script[src="' + GATED_SRC + '"]')) return; // never inject twice
-    var s = document.createElement('script');
-    s.src = GATED_SRC;
-    document.body.appendChild(s);
+  function purge(root) {
+    if (!root.querySelectorAll) return;
+    root.querySelectorAll('chat-widget').forEach(function (el) { el.remove(); });
   }
-  function getStored() {
-    try { return localStorage.getItem(CONSENT_KEY); } catch (e) { return null; }
-  }
-  function saveConsent(value) {
-    try { localStorage.setItem(CONSENT_KEY, value); } catch (e) {}
-  }
-
-  var stored = getStored();
-  if (stored === 'accepted') loadGatedScript();
-
-  // ADAptify (adaptify.js) drops its own round launcher in a corner — by
-  // default the same bottom-left corner this widget uses — and ADAptify
-  // itself already does this exact trick to stay clear of the reCAPTCHA
-  // badge. Mirror it here: measure ADAptify's real button once it's laid
-  // out, and if it's sharing our corner, stack directly above it — same
-  // left margin, same size — instead of overlapping. Nothing here is a
-  // guessed offset; it's all read straight from ADAptify's own rect, so it
-  // stays correct even if ADAptify's position/size ever changes. ADAptify
-  // loads its config async, so poll briefly rather than assume it's there
-  // (or isn't) on the first frame.
-  var DEFAULT_LEFT = 16, DEFAULT_BOTTOM = 16, DEFAULT_SIZE = 44;
-  var pos = { left: DEFAULT_LEFT, bottom: DEFAULT_BOTTOM, size: DEFAULT_SIZE };
-  function watchAdaptify(onChange) {
-    function check() {
-      var btn = document.querySelector('.adaptify-launch');
-      if (!btn) return false;
-      var r = btn.getBoundingClientRect();
-      if (!r.width || !r.height) return false;   // in the DOM but not laid out yet
-      var sharesCorner = r.left < window.innerWidth / 2 && r.top > window.innerHeight / 2;
-      var next = sharesCorner
-        ? { left: Math.round(r.left), bottom: Math.round(window.innerHeight - r.top) + 10, size: Math.round(r.width) }
-        : { left: DEFAULT_LEFT, bottom: DEFAULT_BOTTOM, size: DEFAULT_SIZE };
-      if (next.left !== pos.left || next.bottom !== pos.bottom || next.size !== pos.size) {
-        pos = next; onChange();
-      }
-      return true;
-    }
-    if (check()) return;
-    var n = 0, iv = setInterval(function () { if (check() || ++n >= 24) clearInterval(iv); }, 600);
-  }
-
-  function init() {
-    var card = null, tab = null, timer = null;
-
-    function applyPos(el, isCard) {
-      if (!el) return;
-      el.style.left = pos.left + 'px';
-      el.style.bottom = pos.bottom + 'px';
-      if (!isCard) { el.style.width = pos.size + 'px'; el.style.height = pos.size + 'px'; }
-    }
-    function applyAll() { applyPos(tab, false); applyPos(card, true); }
-    watchAdaptify(applyAll);
-
-    function buildTab() {
-      tab = document.createElement('button');
-      tab.type = 'button';
-      tab.setAttribute('aria-label', 'Cookie preferences');
-      tab.title = 'Cookie preferences';
-      tab.style.cssText = 'position:fixed;left:' + pos.left + 'px;bottom:' + pos.bottom + 'px;z-index:2147482999;'
-        + 'width:' + pos.size + 'px;height:' + pos.size + 'px;border-radius:50%;border:none;cursor:pointer;padding:0;'
-        + 'background:#2c4863;box-shadow:0 4px 14px rgba(0,0,0,.2);'
-        + 'display:flex;align-items:center;justify-content:center;'
-        + 'opacity:0;transform:scale(.7);transition:opacity .25s ease,transform .25s ease,bottom .2s ease,left .2s ease,width .2s ease,height .2s ease;';
-      tab.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-        + '<path d="M21 12.5c-1.3 0-2.5-1-2.5-2.5 0-.4.1-.8.2-1.1-.3.1-.6.1-.9.1-1.4 0-2.5-1.1-2.5-2.5 0-.6.2-1.1.5-1.5-.3 0-.6.1-.9.1A2.5 2.5 0 0112.4 3c.1 0 .1 0 .2 0A9 9 0 1021 12.5z"/>'
-        + '<circle cx="8.5" cy="11.5" r=".8" fill="#fff"/><circle cx="12" cy="15.5" r=".8" fill="#fff"/><circle cx="15" cy="10.5" r=".8" fill="#fff"/>'
-        + '</svg>';
-      tab.addEventListener('click', function () { openCard(true); });
-      document.body.appendChild(tab);
-    }
-    function showTab() {
-      if (!tab) buildTab();
-      requestAnimationFrame(function () { tab.style.opacity = '1'; tab.style.transform = 'none'; });
-    }
-
-    function closeCard() {
-      if (!card) return;
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(8px) scale(.98)';
-      setTimeout(function () { if (card) { card.remove(); card = null; } }, 220);
-      showTab();
-    }
-
-    function openCard(isRevisit) {
-      if (card) return;
-      if (tab) { tab.style.opacity = '0'; tab.style.transform = 'scale(.7)'; }
-      card = document.createElement('div');
-      card.setAttribute('role', 'region');
-      card.setAttribute('aria-label', 'Cookie preferences');
-      card.style.cssText = 'position:fixed;left:' + pos.left + 'px;bottom:' + pos.bottom + 'px;z-index:2147483000;width:300px;max-width:calc(100vw - 32px);'
-        + 'background:rgba(44,72,99,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);'
-        + 'color:#fff;font-family:Manrope,system-ui,sans-serif;border-radius:14px;'
-        + 'padding:16px 18px;box-shadow:0 10px 32px rgba(0,0,0,.22);'
-        + 'opacity:0;transform:translateY(8px) scale(.98);transition:opacity .25s ease,transform .25s ease,bottom .2s ease,left .2s ease;';
-      card.innerHTML =
-        '<button type="button" data-consent="close" aria-label="Close" style="position:absolute;top:10px;right:10px;'
-        + 'background:none;border:none;color:rgba(255,255,255,.55);font-size:15px;line-height:1;cursor:pointer;padding:4px">&times;</button>'
-        + '<p style="margin:0 0 12px;padding-right:16px;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.88)">'
-        + 'We use cookies to improve your experience and understand site usage. '
-        + (isRevisit ? 'Update your preference below.' : 'Choose below, or we&rsquo;ll assume that&rsquo;s okay in a few seconds.')
-        + '</p>'
-        + '<div style="display:flex;gap:8px">'
-        + '<button type="button" data-consent="decline" style="flex:1;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.4);'
-        + 'border-radius:999px;padding:8px 10px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer">Decline</button>'
-        + '<button type="button" data-consent="accept" style="flex:1;background:#629ad0;color:#fff;border:none;'
-        + 'border-radius:999px;padding:8px 10px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Accept</button>'
-        + '</div>';
-      document.body.appendChild(card);
-      requestAnimationFrame(function () { card.style.opacity = '1'; card.style.transform = 'none'; });
-
-      if (!isRevisit) {
-        timer = setTimeout(function () {   // no response in time -> implicit accept
-          saveConsent('accepted');
-          loadGatedScript();
-          closeCard();
-        }, GATE_MS);
-      }
-
-      card.querySelector('[data-consent="accept"]').addEventListener('click', function () {
-        clearTimeout(timer);
-        saveConsent('accepted');
-        loadGatedScript();
-        closeCard();
+  purge(document);
+  if (!('MutationObserver' in window)) return;
+  new MutationObserver(function (mutations) {
+    mutations.forEach(function (m) {
+      m.addedNodes.forEach(function (node) {
+        if (node.nodeType !== 1) return;
+        if (node.tagName === 'CHAT-WIDGET') node.remove();
+        else purge(node);
       });
-      card.querySelector('[data-consent="decline"]').addEventListener('click', function () {
-        clearTimeout(timer);
-        saveConsent('declined');
-        closeCard();
-      });
-      card.querySelector('[data-consent="close"]').addEventListener('click', closeCard);
-    }
-
-    if (stored === null) openCard(false);
-    else showTab();
-  }
-
-  if (document.body) init();
-  else document.addEventListener('DOMContentLoaded', init);
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
 })();
