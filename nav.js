@@ -98,11 +98,14 @@
   // default the same bottom-left corner this widget uses — and ADAptify
   // itself already does this exact trick to stay clear of the reCAPTCHA
   // badge. Mirror it here: measure ADAptify's real button once it's laid
-  // out, and if it's sharing our corner, stack above it at a matching size
-  // instead of overlapping. ADAptify loads its config async, so poll
-  // briefly rather than assume it's there (or isn't) on the first frame.
-  var TAB_SIZE = 44; // close to ADAptify's 48px launcher for a matching pair
-  var liftPx = 0;
+  // out, and if it's sharing our corner, stack directly above it — same
+  // left margin, same size — instead of overlapping. Nothing here is a
+  // guessed offset; it's all read straight from ADAptify's own rect, so it
+  // stays correct even if ADAptify's position/size ever changes. ADAptify
+  // loads its config async, so poll briefly rather than assume it's there
+  // (or isn't) on the first frame.
+  var DEFAULT_LEFT = 16, DEFAULT_BOTTOM = 16, DEFAULT_SIZE = 44;
+  var pos = { left: DEFAULT_LEFT, bottom: DEFAULT_BOTTOM, size: DEFAULT_SIZE };
   function watchAdaptify(onChange) {
     function check() {
       var btn = document.querySelector('.adaptify-launch');
@@ -110,8 +113,12 @@
       var r = btn.getBoundingClientRect();
       if (!r.width || !r.height) return false;   // in the DOM but not laid out yet
       var sharesCorner = r.left < window.innerWidth / 2 && r.top > window.innerHeight / 2;
-      var next = sharesCorner ? Math.max(0, Math.round(window.innerHeight - r.top) + 10) : 0;
-      if (next !== liftPx) { liftPx = next; onChange(); }
+      var next = sharesCorner
+        ? { left: Math.round(r.left), bottom: Math.round(window.innerHeight - r.top) + 10, size: Math.round(r.width) }
+        : { left: DEFAULT_LEFT, bottom: DEFAULT_BOTTOM, size: DEFAULT_SIZE };
+      if (next.left !== pos.left || next.bottom !== pos.bottom || next.size !== pos.size) {
+        pos = next; onChange();
+      }
       return true;
     }
     if (check()) return;
@@ -121,22 +128,25 @@
   function init() {
     var card = null, tab = null, timer = null;
 
-    function applyLift() {
-      if (tab) tab.style.bottom = (16 + liftPx) + 'px';
-      if (card) card.style.bottom = (16 + liftPx) + 'px';
+    function applyPos(el, isCard) {
+      if (!el) return;
+      el.style.left = pos.left + 'px';
+      el.style.bottom = pos.bottom + 'px';
+      if (!isCard) { el.style.width = pos.size + 'px'; el.style.height = pos.size + 'px'; }
     }
-    watchAdaptify(applyLift);
+    function applyAll() { applyPos(tab, false); applyPos(card, true); }
+    watchAdaptify(applyAll);
 
     function buildTab() {
       tab = document.createElement('button');
       tab.type = 'button';
       tab.setAttribute('aria-label', 'Cookie preferences');
       tab.title = 'Cookie preferences';
-      tab.style.cssText = 'position:fixed;left:16px;bottom:' + (16 + liftPx) + 'px;z-index:2147482999;'
-        + 'width:' + TAB_SIZE + 'px;height:' + TAB_SIZE + 'px;border-radius:50%;border:none;cursor:pointer;padding:0;'
+      tab.style.cssText = 'position:fixed;left:' + pos.left + 'px;bottom:' + pos.bottom + 'px;z-index:2147482999;'
+        + 'width:' + pos.size + 'px;height:' + pos.size + 'px;border-radius:50%;border:none;cursor:pointer;padding:0;'
         + 'background:#2c4863;box-shadow:0 4px 14px rgba(0,0,0,.2);'
         + 'display:flex;align-items:center;justify-content:center;'
-        + 'opacity:0;transform:scale(.7);transition:opacity .25s ease,transform .25s ease,bottom .2s ease;';
+        + 'opacity:0;transform:scale(.7);transition:opacity .25s ease,transform .25s ease,bottom .2s ease,left .2s ease,width .2s ease,height .2s ease;';
       tab.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
         + '<path d="M21 12.5c-1.3 0-2.5-1-2.5-2.5 0-.4.1-.8.2-1.1-.3.1-.6.1-.9.1-1.4 0-2.5-1.1-2.5-2.5 0-.6.2-1.1.5-1.5-.3 0-.6.1-.9.1A2.5 2.5 0 0112.4 3c.1 0 .1 0 .2 0A9 9 0 1021 12.5z"/>'
         + '<circle cx="8.5" cy="11.5" r=".8" fill="#fff"/><circle cx="12" cy="15.5" r=".8" fill="#fff"/><circle cx="15" cy="10.5" r=".8" fill="#fff"/>'
@@ -163,11 +173,11 @@
       card = document.createElement('div');
       card.setAttribute('role', 'region');
       card.setAttribute('aria-label', 'Cookie preferences');
-      card.style.cssText = 'position:fixed;left:16px;bottom:' + (16 + liftPx) + 'px;z-index:2147483000;width:300px;max-width:calc(100vw - 32px);'
+      card.style.cssText = 'position:fixed;left:' + pos.left + 'px;bottom:' + pos.bottom + 'px;z-index:2147483000;width:300px;max-width:calc(100vw - 32px);'
         + 'background:rgba(44,72,99,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);'
         + 'color:#fff;font-family:Manrope,system-ui,sans-serif;border-radius:14px;'
         + 'padding:16px 18px;box-shadow:0 10px 32px rgba(0,0,0,.22);'
-        + 'opacity:0;transform:translateY(8px) scale(.98);transition:opacity .25s ease,transform .25s ease,bottom .2s ease;';
+        + 'opacity:0;transform:translateY(8px) scale(.98);transition:opacity .25s ease,transform .25s ease,bottom .2s ease,left .2s ease;';
       card.innerHTML =
         '<button type="button" data-consent="close" aria-label="Close" style="position:absolute;top:10px;right:10px;'
         + 'background:none;border:none;color:rgba(255,255,255,.55);font-size:15px;line-height:1;cursor:pointer;padding:4px">&times;</button>'
