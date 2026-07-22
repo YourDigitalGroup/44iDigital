@@ -62,16 +62,20 @@
   });
 })();
 
-// ── Remove stray legacy chat widgets ────────────────────────────────────────
-// Old LeadConnector <chat-widget> embeds (pasted into custom code more than
-// once over time) keep showing up as duplicate chat bubbles. Rather than
-// hunt down every place a copy of that snippet may have been pasted, strip
-// any <chat-widget> element the moment it appears — whether it's already in
-// the DOM on load or gets inserted later by an async loader script.
+// ── Remove stray legacy widgets baked into published pages ──────────────────
+// Two things can end up sitting in a published page as plain static markup,
+// independent of any JS that runs afterward: old LeadConnector <chat-widget>
+// embeds (custom code pasted more than once over time), and our own retired
+// cookie-consent button/card — removed from this file, but a page publish
+// had already snapshotted its rendered output directly into the page HTML,
+// so deleting the code here doesn't remove a copy already baked into a page.
+// Strip both the moment they appear — already in the DOM on load, or
+// inserted later by an async script — rather than track down every page.
 (function () {
+  var SELECTOR = 'chat-widget, [aria-label="Cookie preferences"]';
   function purge(root) {
     if (!root.querySelectorAll) return;
-    root.querySelectorAll('chat-widget').forEach(function (el) { el.remove(); });
+    root.querySelectorAll(SELECTOR).forEach(function (el) { el.remove(); });
   }
   purge(document);
   if (!('MutationObserver' in window)) return;
@@ -79,7 +83,7 @@
     mutations.forEach(function (m) {
       m.addedNodes.forEach(function (node) {
         if (node.nodeType !== 1) return;
-        if (node.tagName === 'CHAT-WIDGET') node.remove();
+        if (node.matches && node.matches(SELECTOR)) node.remove();
         else purge(node);
       });
     });
