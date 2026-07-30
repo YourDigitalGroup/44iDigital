@@ -65,7 +65,7 @@
         "I help agencies, broadcasters, publishers and other media organizations explore the 44i Digital Partner Program. A few quick questions and I'll point you to the right next step."
       ], next: 'q1' },
 
-      q1: { type: 'choice', saveAs: 'Organization type',
+      q1: { type: 'choice', saveAs: 'Organization type', allowSkip: true,
         message: 'What best describes your organization?',
         options: [
           { label: 'Advertising / Marketing Agency', next: 'q2' },
@@ -85,7 +85,7 @@
         { label: 'Call 605-334-4464', url: 'tel:16053344464' }
       ] },
 
-      q2: { type: 'choice', saveAs: 'Primary goal',
+      q2: { type: 'choice', saveAs: 'Primary goal', allowSkip: true,
         message: 'What are you hoping to accomplish?',
         options: [
           { label: 'Launch a digital program', next: 'q2a', outcome: 'Launch a Complete Digital Program' },
@@ -95,28 +95,28 @@
           { label: 'Explore whether 44i is a fit', next: 'q2e', outcome: 'Explore the 44i Partner Program' }
         ] },
 
-      q2a: { type: 'multi', saveAs: 'What has prevented you from launching?',
+      q2a: { type: 'multi', saveAs: 'What has prevented you from launching?', allowSkip: true,
         message: 'What has prevented you from launching? Pick all that apply.',
         options: ['No fulfillment resources', 'Sales team needs training', 'Need products / pricing / proposals', 'Need a complete program'],
         next: 'q3' },
-      q2b: { type: 'multi', saveAs: 'Capabilities to add',
+      q2b: { type: 'multi', saveAs: 'Capabilities to add', allowSkip: true,
         message: 'Which capabilities do you want to add? Pick all that apply.',
         options: ['Website + search solutions', 'Social + content marketing', 'Paid search + paid social', 'Programmatic + streaming', 'Broader digital suite'],
         next: 'q3' },
-      q2c: { type: 'multi', saveAs: 'Reason for considering a change',
+      q2c: { type: 'multi', saveAs: 'Reason for considering a change', allowSkip: true,
         message: 'Why are you considering a change? Pick all that apply.',
         options: ['Poor communication', 'Inconsistent fulfillment', 'Low margins', 'Limited capabilities', 'Not flexible'],
         next: 'q3' },
-      q2d: { type: 'multi', saveAs: 'Where improvement is needed most',
+      q2d: { type: 'multi', saveAs: 'Where improvement is needed most', allowSkip: true,
         message: 'Where do you need the most improvement? Pick all that apply.',
         options: ['Sales support + training', 'Campaign fulfillment', 'Partner communication', 'Reporting + client materials', 'Profitability + scale'],
         next: 'q3' },
-      q2e: { type: 'multi', saveAs: 'Wants to learn about',
+      q2e: { type: 'multi', saveAs: 'Wants to learn about', allowSkip: true,
         message: 'What would you most like to learn about? Pick all that apply.',
         options: ['How the partnership works', 'Available products', 'Training + sales support', 'Pricing + margins', 'Onboarding'],
         next: 'q3' },
 
-      q3: { type: 'choice', saveAs: 'Digital program maturity',
+      q3: { type: 'choice', saveAs: 'Digital program maturity', allowSkip: true,
         message: 'How established is your digital program today?',
         options: [
           { label: "We haven't launched one yet", next: 'q4' },
@@ -125,7 +125,7 @@
           { label: 'We manage a large digital operation', next: 'q4' }
         ] },
 
-      q4: { type: 'choice', saveAs: 'Sellers / account executives',
+      q4: { type: 'choice', saveAs: 'Sellers / account executives', allowSkip: true,
         message: 'Approximately how many sellers or account executives would participate?',
         options: [
           { label: '1–5', next: 'q5' },
@@ -135,7 +135,7 @@
           { label: 'Not sure yet', next: 'q5' }
         ] },
 
-      q5: { type: 'choice', saveAs: 'Timeline',
+      q5: { type: 'choice', saveAs: 'Timeline', allowSkip: true,
         message: 'When are you hoping to move forward?',
         options: [
           { label: 'As soon as possible', next: 'contactIntro' },
@@ -143,6 +143,14 @@
           { label: 'Within 3–6 months', next: 'contactIntro' },
           { label: "We're researching for now", next: 'contactIntro' }
         ] },
+
+      /* Shortcut off any qualification question — still requires name + email
+         + phone so the partner team can actually reach the visitor, just
+         skips the rest of the qualification tree and the open-ended question. */
+      skipIntro: { type: 'say', messages: ["No problem — let's get you on the calendar."], next: 'skipName' },
+      skipName:  { type: 'text',  saveAs: 'Name',  message: "What's your name?", placeholder: 'First and last name', next: 'skipEmail' },
+      skipEmail: { type: 'email', saveAs: 'Email', message: 'And your email?', placeholder: 'you@company.com', next: 'skipPhone' },
+      skipPhone: { type: 'phone', saveAs: 'Phone', message: 'Best phone number to reach you?', placeholder: '(555) 555-5555', next: 'finish' },
 
       contactIntro: { type: 'say', messages: [
         "Perfect — based on what you've shared, your best next step is: {outcome}.",
@@ -271,6 +279,9 @@
     + '.wlw-opt.wlw-go{background:var(--wlw-dark);border-color:var(--wlw-dark);color:#fff}'
     + '.wlw-opt.wlw-go:disabled{opacity:.45;cursor:not-allowed}'
     + '.wlw-links{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px 36px}'
+    + '.wlw-skipwrap{margin:-4px 0 14px 36px}'
+    + '.wlw-skiplink{background:none;border:none;padding:0;color:#8499ab;font-size:12.5px;font-family:inherit;text-decoration:underline;cursor:pointer}'
+    + '.wlw-skiplink:hover{color:var(--wlw-accent)}'
     + '.wlw-link{display:inline-block;background:var(--wlw-accent);color:#fff !important;text-decoration:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700}'
     + '.wlw-link.wlw-alt{background:#fff;color:var(--wlw-accent) !important;border:1.5px solid var(--wlw-accent)}'
     /* Message-style composer: pill input + round send button, like a texting app */
@@ -532,6 +543,8 @@
       body.appendChild(skipWrap);
       scrollEnd();
     }
+    var demoSkipWrap = null;
+    if (node.allowSkip) demoSkipWrap = addSkipLink(function () { if (skipWrap) skipWrap.remove(); hideInput(); });
     inputHandler = function () {
       var v = input.value.trim();
       if (!v) return;
@@ -543,6 +556,7 @@
         return;
       }
       if (skipWrap) skipWrap.remove();
+      if (demoSkipWrap) demoSkipWrap.remove();
       hideInput();
       addUser(v); logPush('user', v);
       saveAnswer(node.saveAs, v);
@@ -615,9 +629,35 @@
     }
   }
 
+  // A plain text link (deliberately not styled like the choice/opt buttons)
+  // that lets a visitor bail out of the qualification questions early. It
+  // still requires name + email + phone — just skips straight to collecting
+  // those instead of the rest of the tree, so the partner team always has a
+  // way to reach whoever asked for a demo this way.
+  function addSkipLink(cleanup) {
+    var wrap = document.createElement('div');
+    wrap.className = 'wlw-skipwrap';
+    var a = document.createElement('button');
+    a.type = 'button';
+    a.className = 'wlw-skiplink';
+    a.textContent = 'Skip ahead — just schedule my demo';
+    a.addEventListener('click', function () {
+      wrap.remove();
+      if (cleanup) cleanup();
+      addUser('Skip ahead — schedule my demo');
+      logPush('user', 'Skip ahead — schedule my demo');
+      go('skipIntro');
+    });
+    wrap.appendChild(a);
+    body.appendChild(wrap);
+    scrollEnd();
+    return wrap;
+  }
+
   function renderChoices(node) {
     var wrap = document.createElement('div');
     wrap.className = 'wlw-opts';
+    var skipWrap = null;
     node.options.forEach(function (o) {
       var b = document.createElement('button');
       b.type = 'button';
@@ -625,6 +665,7 @@
       b.textContent = o.label;
       b.addEventListener('click', function () {
         wrap.remove();
+        if (skipWrap) skipWrap.remove();
         addUser(o.label); logPush('user', o.label);
         saveAnswer(node.saveAs, o.label);
         if (o.outcome) { state.outcome = o.outcome; saveAnswer('Recommended path', o.outcome); persist(); }
@@ -633,12 +674,14 @@
       wrap.appendChild(b);
     });
     body.appendChild(wrap);
+    if (node.allowSkip) skipWrap = addSkipLink(function () { wrap.remove(); });
     scrollEnd();
   }
 
   function renderMulti(node) {
     var wrap = document.createElement('div');
     wrap.className = 'wlw-opts';
+    var skipWrap = null;
     var picked = [];
     var goBtn = document.createElement('button');
     node.options.forEach(function (label) {
@@ -664,12 +707,14 @@
       if (!picked.length) return;
       var v = picked.join(', ');
       wrap.remove();
+      if (skipWrap) skipWrap.remove();
       addUser(v); logPush('user', v);
       saveAnswer(node.saveAs, v);
       go(node.next);
     });
     wrap.appendChild(goBtn);
     body.appendChild(wrap);
+    if (node.allowSkip) skipWrap = addSkipLink(function () { wrap.remove(); });
     scrollEnd();
   }
 
