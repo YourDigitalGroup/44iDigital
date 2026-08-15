@@ -89,3 +89,14 @@
     });
   }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+// ── BugHerd feedback sidebar ────────────────────────────────────────────────
+// Loads on every page (this file is included sitewide) — the page URL is what
+// identifies which page a submission came from, so nothing is configured
+// per-page or per-site.
+(function (d, t) {
+  var bh = d.createElement(t), s = d.getElementsByTagName(t)[0];
+  bh.type = 'text/javascript';
+  bh.src = 'https://www.bugherd.com/sidebarv2.js?apikey=cohnwzqmccvlvqgyvjfdhq';
+  s.parentNode.insertBefore(bh, s);
+})(document, 'script');
