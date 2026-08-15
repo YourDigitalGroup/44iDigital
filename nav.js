@@ -93,8 +93,12 @@
 // ── BugHerd feedback sidebar ────────────────────────────────────────────────
 // Loads on every page (this file is included sitewide) — the page URL is what
 // identifies which page a submission came from, so nothing is configured
-// per-page or per-site.
+// per-page or per-site. EXCEPT the city TLPs (targeted landing pages,
+// /agencies-<city> and /services-<city>) — feedback review doesn't happen
+// there, and the bare /agencies and /services pages don't match the dash
+// pattern so they still get the sidebar.
 (function (d, t) {
+  if (/^\/(agencies|services)-/.test(location.pathname)) return;
   var bh = d.createElement(t), s = d.getElementsByTagName(t)[0];
   bh.type = 'text/javascript';
   bh.src = 'https://www.bugherd.com/sidebarv2.js?apikey=cohnwzqmccvlvqgyvjfdhq';
