@@ -89,3 +89,15 @@
     });
   }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+// ── BugHerd feedback sidebar ────────────────────────────────────────────────
+// Homepage only for now (nav.js loads sitewide, so this is the gate to widen
+// when feedback review expands to more pages — the snippet itself needs no
+// per-page config; the page URL identifies where a submission came from).
+(function (d, t) {
+  if (!/^\/(index\.html)?$/.test(location.pathname)) return;
+  var bh = d.createElement(t), s = d.getElementsByTagName(t)[0];
+  bh.type = 'text/javascript';
+  bh.src = 'https://www.bugherd.com/sidebarv2.js?apikey=cohnwzqmccvlvqgyvjfdhq';
+  s.parentNode.insertBefore(bh, s);
+})(document, 'script');
