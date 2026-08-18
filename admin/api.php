@@ -1828,7 +1828,10 @@ function cmsOnboardingUpload() {
     $f = $_FILES['file'];
     if ($f['error'] !== UPLOAD_ERR_OK) {
         http_response_code(400);
-        echo json_encode(['error' => 'Upload failed (code ' . (int)$f['error'] . '). If the file is very large, try a smaller version.']); return;
+        $why = in_array($f['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+            ? 'That file exceeds the server\'s upload size limit — please try a smaller version.'
+            : 'Upload failed (code ' . (int)$f['error'] . '). Please try again.';
+        echo json_encode(['error' => $why]); return;
     }
     $MAX = 25 * 1024 * 1024;
     if ($f['size'] > $MAX) {
@@ -1847,7 +1850,12 @@ function cmsOnboardingUpload() {
         echo json_encode(['error' => 'Accepted file types: jpg, jpeg, png, svg.']); return;
     }
 
-    // Content sniff — the extension alone is spoofable.
+    // Content sniff — the extension alone is spoofable. The PRIMARY check is
+    // the file's own magic bytes, which needs no PHP extension: the live host's
+    // fileinfo module turned out to be unreliable (finfo rejected genuine PNGs
+    // in production), so finfo is only a secondary acceptance path when
+    // present — never the sole judge.
+    $head = (string)file_get_contents($f['tmp_name'], false, null, 0, 4096);
     $mime = '';
     if (function_exists('finfo_open')) {
         $fi = finfo_open(FILEINFO_MIME_TYPE);
@@ -1855,11 +1863,12 @@ function cmsOnboardingUpload() {
     }
     $okMime = false;
     if ($ext === 'svg') {
-        $head = (string)file_get_contents($f['tmp_name'], false, null, 0, 4096);
         $okMime = (stripos($head, '<svg') !== false)
             && in_array($mime, ['image/svg+xml', 'image/svg', 'text/xml', 'application/xml', 'text/plain', 'text/html', ''], true);
-    } else {
-        $okMime = in_array($mime, ['image/jpeg', 'image/png'], true);
+    } elseif ($ext === 'png') {
+        $okMime = strncmp($head, "\x89PNG\r\n\x1a\n", 8) === 0 || $mime === 'image/png';
+    } else {   // jpg / jpeg
+        $okMime = strncmp($head, "\xFF\xD8\xFF", 3) === 0 || $mime === 'image/jpeg';
     }
     if (!$okMime) {
         http_response_code(400);
