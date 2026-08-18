@@ -179,7 +179,7 @@ $action = $body['action'] ?? $_POST['action'] ?? '';
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -244,6 +244,7 @@ try {
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
         case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
+        case 'onboarding_upload': ob_end_clean(); cmsOnboardingUpload(); break;
         case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
         case 'ga_status':   ob_end_clean(); gaStatus();          break;
@@ -1107,6 +1108,19 @@ function cms44iSendConfirmationEmail($toEmail, $name, $mg) {
     return true;
 }
 
+// Per-form notification overrides — kept SERVER-SIDE so the recipient list never
+// appears in public page source and can't be substituted by whoever POSTs to
+// send_form. A form listed here also skips the GoHighLevel lead push and the
+// visitor confirmation email: these forms are operational paperwork from
+// EXISTING partners (e.g. White Label onboarding), not sales leads, so a
+// "thanks for inquiring" email or a GHL contact would be wrong for them.
+function cmsFormNotifyOverride($formId) {
+    $map = [
+        'whitelabel-onboarding' => 'carol@44interactive.com, jon@44interactive.com, james@44i.com, peggy@44interactive.com, james@44interactive.com, billy@44idigital.com, accounting@44interactive.com',
+    ];
+    return $map[$formId] ?? null;
+}
+
 function cmsSendForm($body) {
     $mg      = cmsMailgun();
     $fields  = $body['fields']  ?? [];
@@ -1115,6 +1129,9 @@ function cmsSendForm($body) {
     $siteUrl = $body['siteUrl'] ?? '';
     $formId  = $body['formId']  ?? '';
     $rcToken = $body['recaptcha'] ?? '';
+
+    $notifyOverride = cmsFormNotifyOverride($formId);
+    if ($notifyOverride !== null) $toEmail = $notifyOverride;
 
     // reCAPTCHA verification (only enforced if a secret is configured in site.json)
     $rcSecret = cmsRecaptchaSecret();
@@ -1132,7 +1149,7 @@ function cmsSendForm($body) {
     // email). The outcome is captured — and exceptions are logged, never just
     // swallowed — so a submission sent with debug_ghl:true gets the GHL result
     // echoed back in the response for troubleshooting.
-    $ghl = cmsGhlConfig();
+    $ghl = ($notifyOverride === null) ? cmsGhlConfig() : null;
     if ($ghl) {
         try { $ghlResult = cmsGhlPushLead($ghl['token'], $ghl['locationId'], $fields, $subject, $siteUrl); }
         catch (Throwable $e) {
@@ -1152,7 +1169,7 @@ function cmsSendForm($body) {
     // of whether the OWNER notification below is even configured, since a
     // site relying only on GHL for lead capture should still confirm to the
     // visitor). Only sent when a submitted field looks like an email address.
-    if ($replyTo) {
+    if ($replyTo && $notifyOverride === null) {
         $submitterName = '';
         foreach ($fields as $k => $v) {
             $key = strtolower((string)$k);
@@ -1197,14 +1214,23 @@ function cmsSendForm($body) {
         $fromEmail = $fromRaw; $fromName = '';
         if (preg_match('/^\s*(.*?)\s*<([^>]+)>\s*$/', $fromRaw, $mm)) { $fromName = trim($mm[1], " \"'"); $fromEmail = trim($mm[2]); }
         if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) $fromEmail = SMTP_USER;
-        $err = '';
-        $sent = cmsSmtpSend([
-            'host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
-            'from' => $fromEmail, 'fromName' => $fromName, 'to' => $toEmail, 'toName' => '',
-            'replyTo' => $replyTo, 'replyName' => '', 'subject' => $subject, 'html' => $html, 'text' => $text,
-        ], $err);
-        if ($sent) { $r = ['ok' => true]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
-        else { error_log('Fourge SMTP send failed: ' . $err); http_response_code(500); $r = ['error' => 'Email could not be sent right now. Please try again, or contact us directly.']; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
+        // cmsSmtpSend issues a single RCPT TO, so a comma-separated recipient
+        // list (per-form overrides) is delivered as one message per address.
+        // Success = at least one delivery; individual failures are logged.
+        $recipients = array_filter(array_map('trim', explode(',', (string)$toEmail)));
+        $sentAny = false; $err = '';
+        foreach ($recipients as $rcpt) {
+            $oneErr = '';
+            $sent = cmsSmtpSend([
+                'host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
+                'from' => $fromEmail, 'fromName' => $fromName, 'to' => $rcpt, 'toName' => '',
+                'replyTo' => $replyTo, 'replyName' => '', 'subject' => $subject, 'html' => $html, 'text' => $text,
+            ], $oneErr);
+            if ($sent) $sentAny = true;
+            else { $err = $oneErr; error_log('Fourge SMTP send failed for ' . $rcpt . ': ' . $oneErr); }
+        }
+        if ($sentAny) { $r = ['ok' => true]; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
+        else { http_response_code(500); $r = ['error' => 'Email could not be sent right now. Please try again, or contact us directly.']; if ($ghlOut) $r['ghl'] = $ghlOut; echo json_encode($r); }
         return;
     }
 
@@ -1770,6 +1796,88 @@ function fourgeApiSetSecret($me, $body) {
         fourgeSetSecret($pdo, $name, $value, $me['username']);
     }
     echo json_encode(['ok' => true]);
+}
+
+// ── ONBOARDING FILE UPLOADS (public, gate-session guarded) ───────────────────
+// The White Label onboarding form (/onboarding, password-protected by the page
+// gate) collects logo files. This action stores them under a random directory in
+// assets/onboarding-uploads/ and returns the URL, which the form then includes
+// in its send_form submission so the team can download the files from the email.
+//
+// Although listed as a PUBLIC action (visitors have no API token), it is NOT
+// anonymous: it requires the same PHP session the page gate sets when the
+// visitor unlocks /onboarding with the password, so only unlocked visitors can
+// upload. Files are extension- AND content-sniffed (images/SVG only), size-capped,
+// renamed safely, and the uploads directory's .htaccess forces download
+// disposition and denies script execution.
+function cmsOnboardingUpload() {
+    // Same cookie/session the gate uses — see fourgeWriteGateFile().
+    $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $secure]);
+    session_name('fourge_gate');
+    session_start();
+    if (empty($_SESSION['fourge_unlocked']['onboarding.html'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Please unlock the onboarding page first.']); return;
+    }
+
+    if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'] ?? '')) {
+        http_response_code(400);
+        echo json_encode(['error' => 'No file in request.']); return;
+    }
+    $f = $_FILES['file'];
+    if ($f['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Upload failed (code ' . (int)$f['error'] . '). If the file is very large, try a smaller version.']); return;
+    }
+    $MAX = 25 * 1024 * 1024;
+    if ($f['size'] > $MAX) {
+        http_response_code(400);
+        echo json_encode(['error' => 'File too large — please keep each file under 25 MB.']); return;
+    }
+
+    $orig = (string)$f['name'];
+    $safe = preg_replace('/[^A-Za-z0-9._-]+/', '-', basename($orig));
+    $safe = trim($safe, '.-');
+    if ($safe === '' || strlen($safe) > 120) $safe = 'upload-' . bin2hex(random_bytes(4));
+    $ext = strtolower(pathinfo($safe, PATHINFO_EXTENSION));
+    $allowed = ['jpg', 'jpeg', 'png', 'svg'];
+    if (!in_array($ext, $allowed, true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Accepted file types: jpg, jpeg, png, svg.']); return;
+    }
+
+    // Content sniff — the extension alone is spoofable.
+    $mime = '';
+    if (function_exists('finfo_open')) {
+        $fi = finfo_open(FILEINFO_MIME_TYPE);
+        if ($fi) { $mime = (string)finfo_file($fi, $f['tmp_name']); finfo_close($fi); }
+    }
+    $okMime = false;
+    if ($ext === 'svg') {
+        $head = (string)file_get_contents($f['tmp_name'], false, null, 0, 4096);
+        $okMime = (stripos($head, '<svg') !== false)
+            && in_array($mime, ['image/svg+xml', 'image/svg', 'text/xml', 'application/xml', 'text/plain', 'text/html', ''], true);
+    } else {
+        $okMime = in_array($mime, ['image/jpeg', 'image/png'], true);
+    }
+    if (!$okMime) {
+        http_response_code(400);
+        echo json_encode(['error' => 'That file does not look like a valid image.']); return;
+    }
+
+    $relDir = 'assets/onboarding-uploads/' . bin2hex(random_bytes(8));
+    $dir = PUBLIC_HTML . '/' . $relDir;
+    if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Could not store the file. Please try again.']); return;
+    }
+    $dest = $dir . '/' . $safe;
+    if (!move_uploaded_file($f['tmp_name'], $dest)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Could not store the file. Please try again.']); return;
+    }
+    echo json_encode(['ok' => true, 'name' => $safe, 'url' => '/' . $relDir . '/' . rawurlencode($safe)]);
 }
 
 // ── PER-PAGE PASSWORD PROTECTION (PHP session gate) ─────────────────────────────
