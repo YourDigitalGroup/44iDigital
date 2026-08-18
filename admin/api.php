@@ -1924,12 +1924,17 @@ if (!empty($_SESSION['fourge_unlocked'][$p])) {
     readfile($file); exit;
 }
 $err = '';
+// The Clean URLs block 301-redirects any explicit ".html" request — and a
+// browser following that redirect converts the POST to a GET, silently
+// dropping the submitted password. So both the form action and the unlock
+// redirect must use the page's EXTENSIONLESS address.
+$clean = '/' . preg_replace('/\.html$/', '', $p);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pw = isset($_POST['fourge_pw']) ? (string)$_POST['fourge_pw'] : '';
     if ($pw !== '' && password_verify($pw, $map[$p])) {
         session_regenerate_id(true);
         $_SESSION['fourge_unlocked'][$p] = true;
-        header('Location: /' . $p); exit;
+        header('Location: ' . $clean); exit;
     }
     usleep(400000);
     $err = 'Incorrect password. Please try again.';
@@ -1954,7 +1959,7 @@ button:hover{background:#b0481a}.err{background:#fceae6;color:#b3261e;border:1px
 <div class="lock"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
 <h1>This page is protected</h1><p class="sub">Enter the password to continue.</p>
 <?php if ($err) echo '<div class="err">' . $e($err) . '</div>'; ?>
-<form method="post" action="/<?php echo $e($p); ?>">
+<form method="post" action="<?php echo $e($clean); ?>">
 <input type="password" name="fourge_pw" placeholder="Password" autofocus autocomplete="current-password">
 <button type="submit">Unlock</button>
 </form>
