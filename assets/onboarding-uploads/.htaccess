@@ -1,0 +1,14 @@
+# Files uploaded by the White Label onboarding form. They are only ever meant
+# to be DOWNLOADED (logos the team pulls from the notification email) — never
+# executed or rendered inline (an inline SVG could run scripts in this origin).
+Options -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py
+RemoveType .php .phtml
+<FilesMatch "\.(php\d?|phtml|phps|cgi|pl|py)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header set Content-Disposition attachment
+  Header set X-Content-Type-Options nosniff
+  Header set Content-Security-Policy "default-src 'none'"
+</IfModule>

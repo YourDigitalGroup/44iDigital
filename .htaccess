@@ -57,3 +57,10 @@
   RewriteCond %{REQUEST_FILENAME}\.html -f
   RewriteRule ^(.+?)/?$ $1.html [L]
 </IfModule>
+
+# BEGIN Fourge Protected Pages
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^onboarding\.html$ /_fourge_gate.php?p=onboarding.html [L,QSA]
+</IfModule>
+# END Fourge Protected Pages
