@@ -377,16 +377,26 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
     });
   });
 
-  /* ── file inputs: show picked names ── */
+  /* ── file inputs: show picked names, flag oversized files immediately ── */
+  var MAX_FILE = 25 * 1024 * 1024;
+  function oversized(fi) {
+    return Array.prototype.filter.call(fi.files, function (f) { return f.size > MAX_FILE; })
+      .map(function (f) { return f.name; });
+  }
   Array.prototype.forEach.call(document.querySelectorAll('.ob-file input[type=file]'), function (fi) {
     fi.addEventListener('change', function () {
       var list = fi.closest('.ob-file').querySelector('.ob-file-list');
       list.innerHTML = '';
       Array.prototype.forEach.call(fi.files, function (f) {
         var d = document.createElement('div');
-        d.textContent = f.name + ' (' + Math.round(f.size / 1024) + ' KB)';
+        var big = f.size > MAX_FILE;
+        d.textContent = f.name + ' (' + Math.round(f.size / 1024) + ' KB)' + (big ? ' — too large, max 25 MB' : '');
+        if (big) d.style.color = '#991b1b';
         list.appendChild(d);
       });
+      var bad = oversized(fi);
+      if (bad.length) setMsg('err', 'These files are over the 25 MB limit and can’t be uploaded: ' + bad.join(', ') + '. Please compress or resize them and re-select.');
+      else setMsg('', '');
     });
   });
 
@@ -437,10 +447,18 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
 
   /* ── uploads ── */
   function uploadFile(file) {
+    if (file.size > MAX_FILE) {
+      return Promise.reject(new Error('"' + file.name + '" is over the 25 MB limit — please compress or resize it.'));
+    }
     var fd = new FormData();
     fd.append('action', 'onboarding_upload');
     fd.append('file', file, file.name);
     return fetch(API, { method: 'POST', body: fd })
+      .catch(function () {
+        // A network-level failure mid-upload usually means the server cut off
+        // an oversized request — surface something actionable, not "Failed to fetch".
+        throw new Error('The upload of "' + file.name + '" didn\'t go through — the file may be too large for the server, or the connection dropped. Try a smaller version.');
+      })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) throw new Error(d.error || 'Upload failed for ' + file.name);
@@ -507,6 +525,8 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
             subject: 'New submission from White Label Onboarding',
             siteUrl: location.href
           })
+        }).catch(function () {
+          throw new Error('Could not reach the server to send your submission — please check your connection and try again. Your answers are still filled in.');
         });
       })
       .then(function (r) { return r.json(); })
