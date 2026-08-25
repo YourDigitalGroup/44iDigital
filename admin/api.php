@@ -172,6 +172,22 @@ $raw    = file_get_contents('php://input');
 $body   = json_decode($raw, true) ?: [];
 $action = $body['action'] ?? $_POST['action'] ?? '';
 
+// A POST bigger than post_max_size is silently DISCARDED by PHP: $_POST and
+// $_FILES come back empty (php://input may still hold the raw body), so the
+// action is lost and the request used to fall through to the auth check and
+// die with a misleading "Unauthorized". Compare the declared Content-Length
+// against post_max_size up front and answer truthfully instead.
+$__pmaxRaw = trim((string)ini_get('post_max_size'));
+$__pmaxMult = ['k' => 1024, 'm' => 1048576, 'g' => 1073741824];
+$__pmax = (float)$__pmaxRaw * ($__pmaxMult[strtolower(substr($__pmaxRaw, -1))] ?? 1);
+if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
+    && (float)($_SERVER['CONTENT_LENGTH'] ?? 0) > $__pmax) {
+    ob_end_clean(); http_response_code(413);
+    echo json_encode(['error' => 'That upload is larger than the server allows'
+        . ' (limit: ' . $__pmaxRaw . 'B per request). Please compress or resize the file and try again.']);
+    exit;
+}
+
 // ── AUTH MODEL ────────────────────────────────────────────────────────────────
 //  • 'login' is public — it verifies the email/password itself.
 //  • 'send_form' is public — it's the public contact-form endpoint. Site visitors
@@ -1821,7 +1837,10 @@ function cmsOnboardingUpload() {
         echo json_encode(['error' => 'Please unlock the onboarding page first.']); return;
     }
 
-    if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'] ?? '')) {
+    // Check the PHP-reported error FIRST: a file over upload_max_filesize
+    // arrives with error=UPLOAD_ERR_INI_SIZE and an empty tmp_name, so an
+    // is_uploaded_file() guard alone would misreport it as "no file".
+    if (empty($_FILES['file'])) {
         http_response_code(400);
         echo json_encode(['error' => 'No file in request.']); return;
     }
@@ -1832,6 +1851,10 @@ function cmsOnboardingUpload() {
             ? 'That file exceeds the server\'s upload size limit — please try a smaller version.'
             : 'Upload failed (code ' . (int)$f['error'] . '). Please try again.';
         echo json_encode(['error' => $why]); return;
+    }
+    if (!is_uploaded_file($f['tmp_name'] ?? '')) {
+        http_response_code(400);
+        echo json_encode(['error' => 'No file in request.']); return;
     }
     $MAX = 25 * 1024 * 1024;
     if ($f['size'] > $MAX) {
