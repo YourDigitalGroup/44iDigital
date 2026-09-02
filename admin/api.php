@@ -1150,7 +1150,7 @@ function cms44iSendConfirmationEmail($toEmail, $name, $mg) {
 // "thanks for inquiring" email or a GHL contact would be wrong for them.
 function cmsFormNotifyOverride($formId) {
     $map = [
-        'whitelabel-onboarding' => 'carol@44interactive.com, jon@44interactive.com, james@44i.com, peggy@44interactive.com, james@44interactive.com, billy@44idigital.com, accounting@44interactive.com',
+        'whitelabel-onboarding' => 'jon@44interactive.com, jim@44interactive.com, carol@44interactive.com, peggy@44interactive.com, shania@44interactive.com, billy@44interactive.com, scott@44interactive.com, travis@44interactive.com, james@44i.com, james@44interactive.com, billy@44idigital.com, accounting@44interactive.com',
     ];
     return $map[$formId] ?? null;
 }
