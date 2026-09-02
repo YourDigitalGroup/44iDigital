@@ -2298,6 +2298,12 @@ const CMS_VERSION='1.14.58';
 // This must mirror the server allow-list in api.php → fourgeUpdateFetchAllow().
 const UPDATE_FILES_ALLOWED=['admin/index.html','admin/db.php','block-renderer.jsx','blog-post.jsx','interior-shell.jsx','posts.jsx','preview.html','adaptify.js','admin/api.php'];
 const UPDATE_FILES_DEFAULT=UPDATE_FILES_ALLOWED.slice(); // used when version.json omits "files"
+// 44i: this site's engine files are customized (api.php's onboarding endpoints
+// and recipient routing; this file's blog editor) and deploy from GitHub
+// (YourDigitalGroup/44iDigital). The template auto-updater once overwrote live
+// api.php with the generic copy and broke /onboarding, so it is disabled here —
+// engine updates must ship through the repo instead.
+const ENGINE_REPO_MANAGED=true;
 const UPDATE_THROTTLE_MS=20*60*60*1000; // ~daily: don't re-check on every login within a day
 const F_PAGES='data/pages.json',F_POSTS='data/posts.json',F_SEO='data/seo.json';
 const F_SITE='data/site.json',F_INJECT='data/injections.json',F_USERS='data/users.json';
@@ -2699,6 +2705,7 @@ async function initApp(){
 // newer version is published, installs it and reloads before entering the CMS —
 // so no site can run a stale build. A failed or offline check never blocks login.
 async function initUpdateGate(){
+  if(ENGINE_REPO_MANAGED) return; // 44i: updater disabled — engine ships via GitHub
   // Ensure site-wide config is loaded before reading update settings,
   // so a fresh device/browser still sees the repo + mode from site.json.
   if(!_site || !_site.update){
@@ -6566,6 +6573,7 @@ function markUpdateChecked(){ localStorage.setItem('cd_last_update_check',String
 
 // Banner-style check (used by the "Check Now" button in Settings). Always runs.
 async function checkForUpdates(){
+  if(ENGINE_REPO_MANAGED){ toast('Engine updates for this site ship through GitHub (YourDigitalGroup/44iDigital) — the in-CMS updater is disabled.','ok'); return; }
   try{
     const st=await getUpdateStatus();
     markUpdateChecked();
@@ -6591,6 +6599,7 @@ async function checkForUpdates(){
 // resolve a fresh one. index.html is written LAST so the entry point never runs
 // ahead of the data layer it depends on.
 async function doUpdate(st){
+  if(ENGINE_REPO_MANAGED){ toast('This site\'s engine is managed in GitHub — the in-CMS updater is disabled.','err'); return false; }
   const tpl=getTplRepo();
   if(!tpl){ toast('Set the CMS Repo in Settings first','err'); return false; }
   if(!canCallApi()){ toast('Sign in again to install updates','err'); return false; }

@@ -492,6 +492,24 @@ function cmsWriteFile($body) {
         echo json_encode(['error' => 'Refusing to overwrite api.php: config.secret.php not found. Move this site\'s secrets into config.secret.php first — then api.php auto-updates.']);
         return;
     }
+    // ── 44i customization guard ─────────────────────────────────────────────
+    // This site's engine files are customized well beyond the Fourge template
+    // (api.php: the onboarding_upload endpoint + form recipient routing;
+    // admin/index.html: the block-based blog editor) and deploy from GitHub
+    // (YourDigitalGroup/44iDigital). The in-CMS auto-updater pulls the GENERIC
+    // template copies — that once overwrote live api.php and broke /onboarding
+    // with "Unauthorized" errors. Refuse any write of these files whose content
+    // lacks this site's markers, so a template copy can never land here again.
+    $relNorm = strtolower(ltrim(str_replace('\\', '/', $relPath), '/'));
+    $siteMarkers = [
+        'admin/api.php'    => 'onboarding_upload',
+        'admin/index.html' => 'pe2-block',
+    ];
+    if (isset($siteMarkers[$relNorm]) && strpos($content, $siteMarkers[$relNorm]) === false) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Refusing to overwrite ' . $relNorm . ': this site\'s copy is customized and deploys from GitHub (YourDigitalGroup/44iDigital). Ship changes through the repo, not the in-CMS updater.']);
+        return;
+    }
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     if (file_put_contents($dest, $content) === false) {
         http_response_code(500);
