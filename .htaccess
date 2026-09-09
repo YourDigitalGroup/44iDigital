@@ -35,6 +35,34 @@
   RewriteRule ^posts/?$ /blog? [R=301,L,NC]
 </IfModule>
 
+# Rev 5.1 — canonical host. Pages canonicalize to www; serve one hostname so
+# search engines and AI crawlers see a single URL per page (deck item C3).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^44idigital\.com$ [NC]
+  RewriteRule ^ https://www.44idigital.com%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Rev 5.1 — legacy URLs (deck Part 3). /what-we-offer was the 2024 offerings
+# page (already gone; still indexed and linked); /demo is linked from the
+# LinkedIn company page.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^what-we-offer/?$ /services [R=301,L,NC]
+  RewriteRule ^demo/?$ /book-a-demo [R=301,L,NC]
+</IfModule>
+
+# Rev 5.1 — tactic pages live at /services/<slug> (deck item H1) but are flat
+# service-<slug>.html files on disk, so /services itself keeps serving
+# services.html. Explicit /service-<slug>(.html) requests 301 to the canonical
+# /services/<slug> URL.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{THE_REQUEST} \s/+service-([a-z0-9-]+?)(?:\.html)?[\s?] [NC]
+  RewriteRule ^ /services/%1 [R=301,L]
+  RewriteRule ^services/([a-z0-9-]+)/?$ service-$1.html [L]
+</IfModule>
+
 # Fourge — clean URLs.
 # Serve /page from /page.html and drop the .html from the public URL so each
 # page has one canonical, extensionless address (better for SEO). Files stay
