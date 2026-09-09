@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<!-- foundry-analytics:start -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-MM8WRJ8R");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-11308124462"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","AW-11308124462");</script>
+<!-- foundry-analytics:end -->
+<!-- foundry-custom-head:start -->
+<!-- Functional -->
+<script defer src='https://data.processwebsitedata.com/cscripts/CKS1vytzZR-dd6078b8.js'></script>
+
+<!-- Analytics -->
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MM8WRJ8R');</script>
+<!-- End Google Tag Manager -->
+<!-- foundry-custom-head:end --><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>White Label Digital Marketing Services in Columbia, MD</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link rel="stylesheet" href="shared.css"><style>
+  /* ───── PAGE HERO — swap background photo ───── */
+  .page-hero .photo-bg { background-image: url('assets/44i-hero-services-light.jpg') !important; }
+  /* Single-column hero — copy only */
+  .page-hero .page-hero-grid { grid-template-columns: 1fr; }
+
+  /* ───── PHILOSOPHY — navy band (matches homepage navy sections) ───── */
+  .philosophy { background: var(--ink); color: var(--paper); }
+  .philosophy .section-eyebrow { color: var(--teal); }
+  .philosophy .section-h2 { color: var(--paper); font-weight: 500; }
+  .philosophy .section-h2 .highlight::after { background: var(--blue); opacity: .95; height: 30%; }
+  .philosophy .longform p { color: rgba(255,255,255,.75); }
+  .philosophy .longform p b { color: var(--paper); font-weight: 700; }
+
+  /* House build-up illustration — foundation always visible as the base;
+     walls then roof hard-cut in on top (no fade = no muddy grey blend),
+     then snap back to foundation to loop */
+  .house-anim {
+    position: relative; width: 100%; max-width: 300px;
+    aspect-ratio: 757 / 879; margin: 44px 0 4px;
+  }
+  .house-anim img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain;
+  }
+  /* foundation glow — always on, the base everything sits over */
+  .house-anim img:nth-child(1) { opacity: 1; }
+  .house-anim img:nth-child(2) { opacity: 0; animation: houseWalls 6.6s steps(1, end) infinite; }
+  .house-anim img:nth-child(3) { opacity: 0; animation: houseRoof  6.6s steps(1, end) infinite; }
+  @keyframes houseWalls {
+    0%   { opacity: 0; }  /* foundation showing */
+    33%  { opacity: 1; }  /* snap to walls glow */
+    100% { opacity: 0; }
+  }
+  @keyframes houseRoof {
+    0%   { opacity: 0; }
+    66%  { opacity: 1; }  /* snap to roof glow */
+    100% { opacity: 0; }  /* snap back to foundation */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .house-anim img { animation: none; opacity: 0; }
+    .house-anim img:first-child { opacity: 1; }
+  }
+
+  /* ───── WHAT WE DO — tiered service accordions ───── */
+  .tiers { padding: 40px 0 110px; }
+  .tier-row {
+    display: grid; grid-template-columns: .9fr 1.1fr; gap: 80px;
+    align-items: start;
+    padding: 80px 0;
+  }
+  .tier-row + .tier-row { border-top: 1px solid var(--rule); }
+
+  /* Sticky illustration column */
+  .tier-art-col { position: relative; align-self: stretch; }
+  .tier-art {
+    position: sticky; top: 120px;
+    width: 100%; max-width: 460px; height: auto; display: block;
+    margin: 0 auto;
+  }
+
+  /* Scroll-in animation (mirrors homepage) */
+  .scroll-art {
+    opacity: 0; transform: translateY(28px) scale(.94);
+    transition: opacity 1s ease, transform 1.1s cubic-bezier(.2,.8,.2,1);
+  }
+  .scroll-art.in-view { opacity: 1; transform: translateY(0) scale(1); }
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-art { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Content column */
+  .tier-eyebrow {
+    font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--blue); display: block; margin-bottom: 16px;
+  }
+  .tier-h2 {
+    font-family: 'Manrope', system-ui, sans-serif; font-weight: 800;
+    font-size: clamp(38px, 4.4vw, 58px); line-height: 1.0; letter-spacing: -.025em;
+    color: var(--ink); margin-bottom: 18px;
+  }
+  .tier-lede { font-size: 18px; line-height: 1.55; color: var(--ink-soft); max-width: 50ch; margin-bottom: 32px; }
+
+  /* Accordion list */
+  .svc-acc-list { display: flex; flex-direction: column; gap: 12px; }
+  .svc-acc {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(44,72,99,.03), 0 10px 24px -16px rgba(44,72,99,.18);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .svc-acc:hover { border-color: var(--blue); }
+  .svc-acc-list > .faq-item + .faq-item { margin-top: 0; } /* list gap handles spacing */
+  .svc-acc:has(> .faq-q[aria-expanded="true"]) { border-color: var(--blue); box-shadow: var(--shadow); }
+  .svc-acc .faq-q {
+    width: 100%; background: none; border: 0; text-align: left; font-family: inherit;
+    list-style: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    padding: 22px 26px;
+    font-family: 'Manrope', system-ui, sans-serif; font-weight: 700; font-size: 19px;
+    color: var(--ink); line-height: 1.25;
+  }
+  
+  .svc-acc .chev {
+    border: 0; border-radius: 0; background: none; display: block;
+    flex-shrink: 0; width: 11px; height: 11px;
+    border-right: 2px solid var(--blue); border-bottom: 2px solid var(--blue);
+    transform: rotate(45deg) translate(-2px,-2px);
+    transition: transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .svc-acc .chev::before, .svc-acc .chev::after { content: none; }
+  .svc-acc .faq-q[aria-expanded="true"] .chev { background: none; transform: rotate(225deg) translate(-2px,-2px); }
+  .svc-acc-body { padding: 0 26px 24px; }
+  .svc-acc-body .one-liner { font-size: 14px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+  .svc-acc-body p { font-size: 16px; color: var(--ink-soft); line-height: 1.6; max-width: 60ch; }
+  .svc-acc-body p b { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 1024px) {
+    .tier-row { grid-template-columns: 1fr; gap: 32px; padding: 56px 0; }
+    .tier-art-col { align-self: auto; }
+    .tier-art { position: static; max-width: 320px; }
+  }
+  @media (max-width: 640px) {
+    .tier-row { padding: 44px 0; }
+    .svc-acc .faq-q {
+    width: 100%; background: none; border: 0; text-align: left; font-family: inherit; font-size: 17px; padding: 18px 20px; }
+    .svc-acc-body { padding: 0 20px 20px; }
+  }
+</style><script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"44i Digital — Columbia, MD","areaServed":{"@type":"City","name":"Columbia"},"address":{"@type":"PostalAddress","addressLocality":"Columbia","addressRegion":"MD"},"url":"44idigital.com"}</script>
+
+<meta name="description" content="White label digital marketing services for Columbia, MD agencies and broadcasters. SEO, paid search, social, OTT and web development under your brand." data-fourge-seo=""><link rel="canonical" href="https://www.44idigital.com/services-columbia" data-fourge-seo=""><meta name="robots" content="index,follow" data-fourge-seo=""><meta property="og:title" content="White Label Digital Marketing Services in Columbia, MD" data-fourge-seo=""><meta property="og:description" content="White label digital marketing services for Columbia, MD agencies and broadcasters. SEO, paid search, social, OTT and web development under your brand." data-fourge-seo=""><meta property="og:image" content="https://44idigital.com/assets/blog/danger-of-buzzwords.jpg" data-fourge-seo=""><meta property="og:url" content="https://www.44idigital.com/services-columbia" data-fourge-seo=""><meta property="og:type" content="website" data-fourge-seo=""><meta name="twitter:card" content="summary_large_image" data-fourge-seo=""><meta name="twitter:title" content="White Label Digital Marketing Services in Columbia, MD" data-fourge-seo=""><meta name="twitter:description" content="White label digital marketing services for Columbia, MD agencies and broadcasters. SEO, paid search, social, OTT and web development under your brand." data-fourge-seo=""><meta name="twitter:image" content="https://44idigital.com/assets/blog/danger-of-buzzwords.jpg" data-fourge-seo=""><script type="application/ld+json" data-fourge-seo="">{"@context":"https://schema.org","@graph":[{"@type":"LocalBusiness","name":"44i Digital","url":"https://www.44idigital.com","telephone":"6052717321","address":{"@type":"PostalAddress","streetAddress":"","addressLocality":"Sioux Falls","addressRegion":"SD","postalCode":"","addressCountry":"US"}},{"@type":"WebPage","name":"White Label Digital Marketing Services in Columbia, MD","url":"https://www.44idigital.com/services-columbia","description":"White label digital marketing services for Columbia, MD agencies and broadcasters. SEO, paid search, social, OTT and web development under your brand."}]}</script><meta name="generator" content="Fourge 1.14.110">
+</head><body class="nav-on-services">
+<!-- foundry-analytics-body:start --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MM8WRJ8R" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- foundry-analytics-body:end --><a href="#main" style="position:absolute;left:-9999px;top:0;">Skip to main content</a><header>
+<nav class="top" aria-label="Primary">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="44i Digital — Return to homepage"><img src="assets/44i-digital-logo.svg" alt="44i Digital logo"></a>
+    <ul>
+      <li class="has-menu"><a href="#">Who We Serve</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="tv-radio">TV &amp; Radio Broadcasters<span class="desc">For station and group leaders</span></a>
+          <a href="agencies">Advertising Agencies<span class="desc">Fill every gap, invisibly</span></a>
+          <a href="publishers">Publishers<span class="desc">Newsrooms &amp; media publishers</span></a>
+          <a href="ooh">OOH Groups<span class="desc">Out-of-home &amp; billboard operators</span></a>
+        </div></div>
+      </li>
+      <li class="has-menu"><a href="services">What We Do</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="services#tier-1">Online Visibility<span class="desc">The foundation — websites, SEO, GBP</span></a>
+          <a href="services#tier-2">Content Marketing<span class="desc">The walls — social, email, reputation</span></a>
+          <a href="services#tier-3">Targeted Digital<span class="desc">The roof — programmatic, OTT, SEM</span></a>
+        </div></div>
+      </li>
+      <li><a href="why-44i">Why 44i Digital</a></li>
+      <li><a href="success-stories">Stories</a></li>
+      <li><a href="blog" data-feid="f1_msg2a4xk">Blog</a></li>
+    </ul>
+    <div class="nav-right">
+      <button type="button" class="nav-burger" data-nav-burger="" aria-label="Open menu" aria-expanded="false"><span class="bar"></span></button>
+      <a class="nav-phone" href="tel:6052717321"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span class="phone-label">605.271.7321</span></a>
+      <a class="btn btn-primary" href="book-a-demo">Book a Demo</a>
+    </div>
+  </div>
+</nav>
+</header>
+<main id="main">
+<section id="page-hero" class="page-hero">
+  <div class="photo-bg" aria-hidden="true"></div>
+  <div class="container">
+    <div class="crumbs"><a href="/">Home</a><span class="sep">/</span><span>What We Do</span></div>
+    <div class="page-hero-grid">
+      <div>
+        <div class="eyebrow"><span class="dot"></span>The full service stack</div>
+        <h1 class="page-h1">Every Tactic You Need for Columbia, MD Clients. One Partner.</h1>
+<div class="tlp-intro" style="padding:16px 0"><p>Columbia, MD is one of Howard County's fastest-growing business corridors, and the competition for local digital visibility is fierce. At 44i Digital, we help agencies and media partners serving Columbia businesses build foundation-up digital programs that actually drive revenue. Whether your clients are in the Town Center, Lake Elkhorn area, or anywhere across Columbia, our white label services let you deliver big-agency results under your own brand.</p></div>
+        <p class="page-hero-sub">From the website your Columbia client's customers can find on Google, to the OTT campaign reaching their best prospects across Howard County — <b>we handle all of it.</b> Built for Columbia, MD markets. Delivered under your brand.</p>
+        <a class="btn btn-primary btn-lg" href="book-a-demo">See which tactics fit your Columbia partners →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="philosophy" class="section philosophy">
+  <div class="container">
+    <div class="split-h">
+      <div>
+        <span class="section-eyebrow">The foundation-up philosophy</span>
+        <h2 class="display section-h2">We build from the <span class="highlight">foundation up.</span> Never from the roof down.</h2>
+        <div class="house-anim" aria-hidden="true">
+          <img src="assets/house1.png" alt="" loading="lazy">
+          <img src="assets/house2.png" alt="" loading="lazy">
+          <img src="assets/house3.png" alt="" loading="lazy">
+        </div>
+      </div>
+      <div class="longform">
+        <p>Most digital programs fail for the same reason: they start at the roof. Someone sells a $5K/month programmatic campaign to a Columbia-area business that doesn't have a working website, doesn't show up in Google search, and has 47 inconsistent listings across the web. The clicks and impressions look great. The business doesn't grow. The client cancels in six months.</p>
+        <p>We do it backwards. <b>Tier 1 is the foundation</b> — a fast, mobile, findable website plus the SEO, AEO, and Google Business Profile work to make it visible. <b>Tier 2 is the walls</b> — content marketing that keeps customers close once you've found them. <b>Tier 3 is the roof</b> — targeted digital that finally pays for itself, because there's actually something to send people to.</p>
+        <p>Roof-first programs drive clicks. Foundation-up programs drive revenue. That's the model.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tiers" class="tiers">
+  <div class="container">
+
+    <!-- TIER 1 — Online Visibility -->
+    <div class="tier-row" id="tier-1">
+      <div class="tier-art-col">
+        <img class="tier-art scroll-art" src="assets/44i-online-visibility.png" alt="Glass-blue laptop showing analytics dashboards" loading="lazy">
+      </div>
+      <div class="tier-content">
+        <span class="tier-eyebrow">Tier 01 · Foundation</span>
+        <h2 class="tier-h2">Online Visibility</h2>
+        <p class="tier-lede">If you can't be found, nothing else matters. The foundation: a fast, mobile-first, accessible website plus everything that helps customers — and AI — discover you.</p>
+        <div class="svc-acc-list">
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Mobile-First Website</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Lighthouse-fast, ADA-friendly</div><p>A modern, fast-loading site engineered for mobile, indexed cleanly by Google, and easy to update. The foundation under everything else.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Automated Chat</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">24/7 AI + live handoff</div><p>An always-on chat assistant that answers common questions, captures leads, and books appointments around the clock — then hands real conversations to your client's team. Trained on their business, branded as yours.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>ADA Accessibility</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">WCAG 2.1 AA compliance</div><p>Accessibility widget plus structural fixes — alt text, contrast, keyboard navigation, screen-reader compatibility. Reduces legal exposure and helps SEO.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>SEO/AEO</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Search + Answer Engine Optimization</div><p>On-page, off-page, technical SEO and content — plus AEO for ChatGPT, Perplexity, and Google AI Overviews. Get found by customers <b>and</b> the AI engines reshaping discovery.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Google Business Profile</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">The single highest-ROI listing online</div><p>Full setup and ongoing management of the GBP that drives <b>60% of all local search clicks</b>. Photos, posts, Q&amp;A, reviews — handled.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Targeted Landing Pages</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Built to convert traffic into leads</div><p>Purpose-built pages for specific campaigns — no clutter, no menu distractions. Live in days, not months.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 2 — Content Marketing -->
+    <div class="tier-row" id="tier-2">
+      <div class="tier-art-col">
+        <img class="tier-art scroll-art" src="assets/44i-content.png" alt="Glass blue and green speech bubbles" loading="lazy">
+      </div>
+      <div class="tier-content">
+        <span class="tier-eyebrow">Tier 02 · Walls</span>
+        <h2 class="tier-h2">Content Marketing</h2>
+        <p class="tier-lede">Once customers can find you, content marketing keeps them close — and pulls new ones into your orbit. The walls between you and every competitor.</p>
+        <div class="svc-acc-list">
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Local Listing Optimization</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">40+ directories, consistent NAP</div><p>Name, address, phone consistency across Yelp, Apple Maps, Bing, Foursquare, and 40+ other directories that feed local search.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Reputation Management</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Review generation + response</div><p>Automated review request flow that compounds 5-star reviews — and a real human responding to every review within 24 hours.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Social Media Marketing</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Daily posting + community management</div><p>Strategy, content production, scheduled posting, and community responses across Facebook, Instagram, LinkedIn, TikTok, and YouTube.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Email Marketing</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Lifecycle &amp; nurture campaigns</div><p>Templated email programs that actually get opened — list growth, lifecycle automation, monthly campaigns. Branded for your client, run by us.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 3 — Targeted Digital -->
+    <div class="tier-row" id="tier-3">
+      <div class="tier-art-col">
+        <img class="tier-art scroll-art" src="assets/44i-targeted-digital.png" alt="Glass blue phone rising from concentric rings" loading="lazy">
+      </div>
+      <div class="tier-content">
+        <span class="tier-eyebrow">Tier 03 · Roof</span>
+        <h2 class="tier-h2">Targeted Digital</h2>
+        <p class="tier-lede">The roof — paid media that finally pays for itself because there's a working foundation underneath. Fifteen tactics, all built and managed in-house.</p>
+        <div class="svc-acc-list">
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Search Engine Marketing</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Google + Microsoft Ads</div><p>Google Ads and Microsoft Ads campaigns, fully managed — keyword research, bidding, ad copy, landing pages, conversion tracking.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Targeted Display Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Banner ads at scale</div><p>Real-time bidded display across millions of sites — audience-targeted, frequency-capped, and fully reported.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Social Media Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Paid social across every platform</div><p>Meta, TikTok, LinkedIn, Pinterest, and Snap — strategy, creative, audience targeting, optimization, and reporting.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Social Display Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Display reach beyond the feed</div><p>Display creative served to your client's social audiences across partner networks and social-adjacent placements — extending reach past the native feed.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Social OTT/CTV Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Streaming TV, social-targeted</div><p>Connected TV and Over-The-Top streaming ads on Hulu, Roku, Samsung TV+, Pluto and more — aimed using social and behavioral audience signals.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>YouTube Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Pre-roll &amp; in-stream video</div><p>YouTube TrueView, bumper, and in-stream ads — targeted by audience, interest, and intent signals from Google.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Mobile Audience Targeting</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Reach buyers on their phones</div><p>Reach the right people on mobile using behavioral, demographic, and interest signals across apps and the mobile web.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Location Targeting</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Geofenced, foot-traffic ready</div><p>Define a physical perimeter and target everyone who enters it on their phones. Best for foot-traffic, events, and competitor conquesting.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Native Advertising</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">In-stream sponsored content</div><p>Sponsored content placements on premium publisher networks — Taboola, Outbrain, and major news sites.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Programmatic Audio Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Bidded streaming audio</div><p>Real-time bidded audio ads across Spotify, Pandora, iHeart, and the open programmatic audio ecosystem.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Programmatic Video Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Bidded video, open web</div><p>Real-time bidded video across the open web — in-stream and out-stream, audience-targeted, brand-safe, and fully measured.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Streaming TV Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Premium long-form video</div><p>Targeted video ads inside the streaming services your clients' customers actually watch — measurable, accountable, mid-funnel performance.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Hulu Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Premium streaming inventory</div><p>Targeted ads inside Hulu's ad-supported streaming catalog — premium, brand-safe placements with the audience precision of digital.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>YouTube TV Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Live TV reach, digital targeting</div><p>Premium ads inside YouTube TV's live and on-demand programming — the reach of television with the targeting and reporting of digital.</p></div>
+          </div>
+          <div class="faq-item svc-acc">
+            <button type="button" class="faq-q" aria-expanded="false"><span>Amazon Prime Ads</span><span class="faq-sign chev"></span></button>
+            <div class="faq-answer svc-acc-body"><div class="one-liner">Prime Video streaming reach</div><p>Premium video placements across Amazon Prime Video's ad-supported tier — massive streaming reach paired with Amazon's first-party audience data.</p></div>
+          </div>
+        </div>
+        <div style="margin-top:48px;">
+          <a class="btn btn-primary btn-lg" href="book-a-demo">See which tactics fit your Columbia partners →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="cta-final" id="contact-cta">
+  <div class="container">
+    <div class="cta-final-grid">
+      <div>
+        <span class="section-eyebrow cta-eyebrow">Ready when you are.</span>
+        <h2 class="display">Let's talk about <span class="highlight">your</span> market.</h2>
+        <p>One free 30-minute call. No commitment. No hard sell. Just a real conversation about what's possible.</p>
+        <ul class="checklist">
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            Custom revenue opportunity analysis for your market
+          </li>
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            See white-labeled proposals, training, and reporting live
+          </li>
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            Backed by our revenue guarantee — risk is on us
+          </li>
+        </ul>
+        <div class="phone-cta">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+          <div>
+            <a href="tel:6052717321" class="num">605.271.7321</a>
+            <span class="sub">Or just call. A real person will answer.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Book Your Free Demo</h3>
+        <p class="sub">Response within one business hour. Mon-Fri, 8a-5p CT.</p>
+        <form onsubmit="event.preventDefault(); alert('Demo form submitted (prototype)');">
+          <div class="field-row">
+            <div class="field">
+              <label>First name</label>
+              <input type="text" placeholder="James" required="">
+            </div>
+            <div class="field">
+              <label>Company</label>
+              <input type="text" placeholder="Your station / agency" required="">
+            </div>
+          </div>
+          <div class="field">
+            <label>Partner type</label>
+            <select required="">
+              <option>— Select your business type —</option>
+              <option>TV Station / Group</option>
+              <option>Radio Station / Group</option>
+              <option>Advertising Agency</option>
+              <option>Digital Agency</option>
+              <option>Media Publisher</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Market / city</label>
+            <input type="text" placeholder="Sioux Falls, SD" required="">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Email</label>
+              <input type="email" placeholder="you@company.com" required="">
+            </div>
+            <div class="field">
+              <label>Phone</label>
+              <input type="tel" placeholder="(605) 555-0142" required="">
+            </div>
+          </div>
+          <div class="submit-row">
+            <button type="submit" class="btn btn-primary">Reserve My Demo Spot →</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a class="footer-logo" href="/" aria-label="44i Digital">
+          <img src="assets/44i-digital-logo-reverse.svg" alt="44i Digital logo">
+        </a>
+        <p class="foot-tagline">The white label partner that picks up the phone.</p>
+        <div class="foot-contact">
+          1600 S. Western Ave.<br>
+          Sioux Falls, SD 57105<br>
+          <a href="tel:6052717321">605.271.7321</a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h5>Who We Serve</h5>
+        <ul>
+          <li><a href="tv-radio">TV &amp; Radio</a></li>
+          <li><a href="agencies">Advertising Agencies</a></li>
+          <li><a href="publishers">Publishers</a></li>
+          <li><a href="ooh">OOH Groups</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>What We Do</h5>
+        <ul>
+          <li><a href="services#tier-1">Online Visibility</a></li>
+          <li><a href="services#tier-2">Content Marketing</a></li>
+          <li><a href="services#tier-3">Targeted Digital</a></li>
+          <li><a href="services">All Services</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Why 44i Digital</h5>
+        <ul>
+          <li><a href="why-44i">The 44i Digital Difference</a></li>
+          <li><a href="success-stories">Success Stories</a></li>
+          <li><a href="blog">Blog</a></li>
+          <li><a href="book-a-demo">Book a Demo</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 44i Digital. All rights reserved.</div>
+      <div>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Accessibility Statement</a>
+        <a href="#">Partner Login</a>
+      </div>
+    </div>
+  </div>
+</footer><script defer="" src="nav.js"></script><script>
+(function(){
+  const rows = [...document.querySelectorAll('.tier-row')];
+  if (!rows.length) return;
+  const pairs = rows.map(row => ({
+    heading: row.querySelector('.tier-h2') || row,
+    art: row.querySelector('.scroll-art')
+  })).filter(p => p.art);
+
+  let ticking = false;
+  function check(){
+    ticking = false;
+    const mid = window.innerHeight * 0.5;       // halfway up the page
+    for (const p of pairs){
+      if (p.done) continue;
+      // reveal once the heading's top has risen to (or above) the middle
+      if (p.heading.getBoundingClientRect().top <= mid){
+        p.art.classList.add('in-view');
+        p.done = true;
+      }
+    }
+  }
+  function onScroll(){
+    if (!ticking){ ticking = true; requestAnimationFrame(check); }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  check(); // initial state
+})();
+</script><script src="/adaptify.js" defer=""></script><!-- foundry-custom-body:start -->
+<!-- Functional -->
+<!-- 44i: after a form submit, send the lead to Billy calendar with their details prefilled -->
+<script>
+(function () {
+  if (window.__ffCalRedirect) return;
+  window.__ffCalRedirect = true;
+  var CAL = "https://api.leadconnectorhq.com/widget/booking/A21wgWRxkLrH6fxGwdAt";
+  var tries = 0;
+  function patch() {
+    if (typeof window.ffSubmit !== "function") {
+      if (++tries > 60) return;
+      return setTimeout(patch, 100);
+    }
+    var original = window.ffSubmit;
+    window.ffSubmit = async function (event, form) {
+      var f = form || (event && event.target);
+      function val(sel) {
+        try { var el = f && f.querySelector(sel); return el && el.value ? el.value.trim() : ""; }
+        catch (e) { return ""; }
+      }
+      var name  = val("[name^=your-name]");
+      var email = val("[name^=email]");
+      var phone = val("[name^=phone]");
+      var result = await original.apply(this, arguments);
+      try {
+        var ok = (f && f.querySelector(".ff-msg.ok")) || document.querySelector(".ff-msg.ok");
+        if (!ok || getComputedStyle(ok).display === "none") return result;
+        var q = new URLSearchParams();
+        var parts = name.split(/\s+/).filter(Boolean);
+        if (parts[0]) q.set("first_name", parts[0]);
+        if (parts.length > 1) q.set("last_name", parts.slice(1).join(" "));
+        if (email) q.set("email", email);
+        if (phone) q.set("phone", phone);
+        var url = CAL + (q.toString() ? "?" + q.toString() : "");
+        setTimeout(function () { window.location.href = url; }, 1500);
+      } catch (e) {}
+      return result;
+    };
+  }
+  patch();
+})();
+</script>
+<!-- Analytics -->
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MM8WRJ8R"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<!-- Marketing -->
+<script src="/willow.js" defer></script>
+<!-- foundry-custom-body:end -->
+</body></html>
