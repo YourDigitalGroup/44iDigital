@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<!-- foundry-analytics:start -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-MM8WRJ8R");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-11308124462"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","AW-11308124462");</script>
+<!-- foundry-analytics:end -->
+<!-- foundry-custom-head:start -->
+<!-- Functional -->
+<script defer src='https://data.processwebsitedata.com/cscripts/CKS1vytzZR-dd6078b8.js'></script>
+
+<!-- Analytics -->
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MM8WRJ8R');</script>
+<!-- End Google Tag Manager -->
+<!-- foundry-custom-head:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why 44i Digital — The White Label Partner That Picks Up the Phone</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Sticky illustration column for the six differentiators */
+  .diffs-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) 1.4fr;
+    gap: 96px;
+    align-items: start;
+  }
+  .diffs-sticky {
+    position: sticky;
+    top: 110px;
+    align-self: start;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+  .diffs-illus-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 446px; /* +30% then +12% */
+    margin: 0 auto;
+    padding-top: 24px; /* breathing room above each illustration */
+    aspect-ratio: 1 / 1;
+  }
+  .diff-illus {
+    position: absolute; inset: 24px 0 0 0;
+    opacity: 0;
+    transform: translateY(12px) scale(.96);
+    transition: opacity .5s ease, transform .9s cubic-bezier(.2,.8,.2,1);
+    pointer-events: none;
+    color: var(--accent-green);
+  }
+  .diff-illus svg { width: 100%; height: 100%; display: block; }
+  .diff-illus .illus-img { width: 100%; height: 100%; display: block; object-fit: contain; }
+  .diff-illus.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .diff-step-list {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-top: 8px;
+    max-width: 360px;
+    margin-left: auto; margin-right: auto;
+  }
+  .diff-step-dot {
+    font-family: inherit; cursor: pointer;
+    background: transparent; border: none; padding: 8px 0; text-align: left;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-quiet);
+    transition: color .25s;
+  }
+  .diff-step-dot::before {
+    content: ''; flex-shrink: 0;
+    width: 18px; height: 2px; background: currentColor;
+    transition: width .35s cubic-bezier(.2,.8,.2,1), background .35s ease;
+  }
+  .diff-step-dot:hover { color: var(--ink-soft); }
+  .diff-step-dot.active { color: var(--ink); }
+  .diff-step-dot.active::before { width: 44px; background: var(--accent-green); }
+
+  .diffs-content { display: flex; flex-direction: column; gap: 140px; }
+  .diff-block { scroll-margin-top: 110px; }
+  .diff-block-head { margin-bottom: 28px; }
+  .diff-block .section-eyebrow { color: var(--teal); }
+  .diff-block h2 {
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-size: clamp(34px, 4.2vw, 52px);
+    font-weight: 700; letter-spacing: -.022em; line-height: 1.0;
+    color: var(--ink); margin-top: 6px;
+  }
+  .diff-block h2 .em { color: var(--coral); }
+  .diff-block p {
+    font-size: 18px; line-height: 1.65; color: var(--ink-soft);
+    margin-bottom: 16px; max-width: 60ch;
+  }
+  .diff-block p b { color: var(--ink); font-weight: 600; }
+
+  .diff-step-list { display: none; }
+
+  /* Per-illustration entry animations (run each time .active is set) */
+  .illus-margins .pie,
+  .illus-margins .bar { opacity: 0; transform-box: fill-box; }
+
+  .diff-illus.active .illus-margins .pie { animation: pieDraw .9s cubic-bezier(.2,.8,.2,1) .1s forwards; transform-origin: 50% 50%; }
+  .diff-illus.active .illus-margins .bar-1 { animation: barRise .55s cubic-bezier(.2,.8,.2,1) .7s forwards; transform-origin: 50% 100%; }
+  .diff-illus.active .illus-margins .bar-2 { animation: barRise .55s cubic-bezier(.2,.8,.2,1) .85s forwards; transform-origin: 50% 100%; }
+  .diff-illus.active .illus-margins .bar-3 { animation: barRise .55s cubic-bezier(.2,.8,.2,1) 1.0s forwards; transform-origin: 50% 100%; }
+
+  @keyframes pieDraw {
+    0%   { opacity: 0; transform: rotate(-30deg) scale(.4); }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: rotate(0) scale(1); }
+  }
+  @keyframes barRise {
+    0%   { opacity: 0; transform: scaleY(0); }
+    100% { opacity: 1; transform: scaleY(1); }
+  }
+
+  /* === 2. GUARANTEE === */
+  .illus-guarantee .g-arrow,
+  .illus-guarantee .g-ring,
+  .illus-guarantee .g-dollar { opacity: 0; transform-box: fill-box; transform-origin: 50% 50%; }
+  .diff-illus.active .illus-guarantee .g-arrow  { animation: gArrow 1.1s cubic-bezier(.2,.8,.2,1) .1s forwards; }
+  .diff-illus.active .illus-guarantee .g-ring   { animation: gRing  .65s cubic-bezier(.2,.8,.2,1) .65s forwards; }
+  .diff-illus.active .illus-guarantee .g-dollar { animation: gPop   .5s  cubic-bezier(.34,1.56,.64,1) 1.1s forwards; }
+  @keyframes gArrow {
+    0%   { opacity: 0; transform: rotate(-90deg) scale(.6); }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: rotate(0) scale(1); }
+  }
+  @keyframes gRing { 0% { opacity: 0; transform: scale(.4); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes gPop  { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
+
+  /* === 3. TEAM === */
+  .illus-team .t-cards,
+  .illus-team .t-people { opacity: 0; transform-box: fill-box; }
+  .diff-illus.active .illus-team .t-cards  { animation: tDrop .65s cubic-bezier(.2,.8,.2,1) .15s forwards; transform-origin: 50% 0; }
+  .diff-illus.active .illus-team .t-people { animation: tRise .65s cubic-bezier(.2,.8,.2,1) .55s forwards; transform-origin: 50% 100%; }
+  @keyframes tDrop { 0% { opacity: 0; transform: translateY(-30%); } 100% { opacity: 1; transform: translateY(0); } }
+  @keyframes tRise { 0% { opacity: 0; transform: translateY(30%); } 100% { opacity: 1; transform: translateY(0); } }
+
+  /* === 4. TRAINING === */
+  .illus-training .tr-laptop,
+  .illus-training .tr-line { opacity: 0; transform-box: fill-box; }
+  .diff-illus.active .illus-training .tr-laptop { animation: trLaptop .8s cubic-bezier(.2,.8,.2,1) .1s forwards; transform-origin: 50% 100%; }
+  .diff-illus.active .illus-training .tr-line-1 { animation: trLine .5s ease-out .75s forwards; transform-origin: 0% 50%; }
+  .diff-illus.active .illus-training .tr-line-2 { animation: trLine .5s ease-out .90s forwards; transform-origin: 0% 50%; }
+  .diff-illus.active .illus-training .tr-line-3 { animation: trLine .5s ease-out 1.05s forwards; transform-origin: 0% 50%; }
+  @keyframes trLaptop { 0% { opacity: 0; transform: scale(.4); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes trLine   { 0% { opacity: 0; transform: scaleX(0); } 100% { opacity: 1; transform: scaleX(1); } }
+
+  /* === 5. FLEXIBILITY === */
+  .illus-flex .fx-gear-outer,
+  .illus-flex .fx-gear-inner,
+  .illus-flex .fx-arrow { opacity: 0; transform-box: fill-box; }
+  .diff-illus.active .illus-flex .fx-gear-outer { animation: fxSpin 1.2s cubic-bezier(.2,.8,.2,1) .1s forwards; transform-origin: 50% 50%; }
+  .diff-illus.active .illus-flex .fx-gear-inner { animation: fxPop  .55s cubic-bezier(.34,1.56,.64,1) .55s forwards; transform-origin: 50% 50%; }
+  .diff-illus.active .illus-flex .fx-arrow      { animation: fxArrow .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .diff-illus.active .illus-flex .fx-arrow-up    { animation-delay: .85s; }
+  .diff-illus.active .illus-flex .fx-arrow-tr    { animation-delay: .95s; }
+  .diff-illus.active .illus-flex .fx-arrow-right { animation-delay: 1.05s; }
+  .diff-illus.active .illus-flex .fx-arrow-br    { animation-delay: 1.15s; }
+  .diff-illus.active .illus-flex .fx-arrow-down  { animation-delay: 1.25s; }
+  .diff-illus.active .illus-flex .fx-arrow-bl    { animation-delay: 1.35s; }
+  .diff-illus.active .illus-flex .fx-arrow-left  { animation-delay: 1.45s; }
+  .diff-illus.active .illus-flex .fx-arrow-tl    { animation-delay: 1.55s; }
+  @keyframes fxSpin   { 0% { opacity: 0; transform: rotate(-90deg) scale(.5); } 60% { opacity: 1; } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+  @keyframes fxPop    { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes fxArrow  { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
+
+  /* === 6. US-BASED === */
+  .illus-us .us-globe,
+  .illus-us .us-person { opacity: 0; transform-box: fill-box; }
+  .diff-illus.active .illus-us .us-globe  { animation: usGlobe  1.1s cubic-bezier(.2,.8,.2,1) .1s forwards; transform-origin: 50% 50%; }
+  .diff-illus.active .illus-us .us-person { animation: usPerson .6s cubic-bezier(.2,.8,.2,1) .9s forwards; transform-origin: 50% 100%; }
+  @keyframes usGlobe  { 0% { opacity: 0; transform: rotate(-60deg) scale(.5); } 60% { opacity: 1; } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+  @keyframes usPerson { 0% { opacity: 0; transform: translateY(40%) scale(.85); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .illus-margins .pie, .illus-margins .bar,
+    .illus-guarantee .g-arrow, .illus-guarantee .g-ring, .illus-guarantee .g-dollar,
+    .illus-team .t-cards, .illus-team .t-people,
+    .illus-training .tr-laptop, .illus-training .tr-line,
+    .illus-flex .fx-gear-outer, .illus-flex .fx-gear-inner, .illus-flex .fx-arrow,
+    .illus-us .us-globe, .illus-us .us-person {
+      opacity: 1 !important; transform: none !important; animation: none !important;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .diffs-grid { grid-template-columns: 1fr; gap: 48px; }
+    .diffs-sticky { position: relative; top: 0; }
+    .diffs-illus-wrap { max-width: 349px; }
+    .diff-step-list { display: none; }
+    .diffs-content { gap: 80px; }
+  }
+</style>
+
+
+
+
+
+
+
+
+<style id="foundry-forms-css">.foundry-form{max-width:600px;margin:0 auto;font-family:inherit}.foundry-form .ff-page{display:flex !important;flex-wrap:wrap;column-gap:18px}.foundry-form .ff-field{margin-bottom:18px;flex:1 1 100% !important;min-width:0;max-width:100%;box-sizing:border-box}.foundry-form .ff-field.ff-half{flex:1 1 calc(50% - 9px) !important;max-width:calc(50% - 9px)}@media(max-width:520px){.foundry-form .ff-field.ff-half{flex:1 1 100% !important;max-width:100%}}.foundry-form label.ff-label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}.foundry-form .ff-req{color:#dc2626}.foundry-form input,.foundry-form textarea,.foundry-form select{width:100%;padding:11px 13px;border:1px solid #d8d4cc !important;border-radius:10px !important;font-size:15px;font-family:inherit;box-sizing:border-box}.foundry-form input[type=radio],.foundry-form input[type=checkbox]{width:auto;margin-right:8px}.foundry-form .ff-choices{display:flex;flex-direction:column;gap:8px}.foundry-form .ff-choice{display:flex;align-items:center;font-weight:400!important;font-size:15px}.foundry-form .ff-row{display:flex;gap:10px}.foundry-form .ff-row>*{flex:1}.foundry-form .ff-addr{display:flex;flex-direction:column;gap:10px}.foundry-form .ff-section{margin:24px 0 12px;border-bottom:2px solid #eee;padding-bottom:8px}.foundry-form .ff-section h3{font-size:18px;margin:0}.foundry-form .ff-section p{color:#777;font-size:14px;margin:4px 0 0}.foundry-form .ff-header{margin-bottom:20px}.foundry-form .ff-form-title{font-size:26px;font-weight:800;line-height:1.15;margin:0 0 6px}.foundry-form .ff-form-desc{color:#666;font-size:15px;line-height:1.5;margin:0}.foundry-form .ff-heading{margin:8px 0 2px}.foundry-form .ff-heading h3{font-size:19px;font-weight:700;margin:0}.foundry-form .ff-text{color:#555;font-size:15px;line-height:1.5}.foundry-form .ff-text p{margin:0}.foundry-form .ff-page>.ff-heading,.foundry-form .ff-page>.ff-text,.foundry-form .ff-page>.ff-section,.foundry-form .ff-page>.ff-html{flex:1 1 100% !important}.foundry-form .ff-submit,.foundry-form .ff-next,.foundry-form .ff-prev{background:var(--ember,#C8531E);color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}.foundry-form .ff-prev{background:#888}.foundry-form .ff-nav{display:flex;gap:10px;justify-content:space-between}.foundry-form .ff-msg{padding:14px;border-radius:8px;margin-bottom:14px;font-size:14px}.foundry-form .ff-msg.ok{background:#dcfce7;color:#166534}.foundry-form .ff-msg.err{background:#fee2e2;color:#991b1b}</style>
+<meta name="description" content="Six structural differences that separate 44i Digital from typical white label providers: US-based fulfillment, month-to-month terms and a revenue guarantee." data-fourge-seo=""><link rel="canonical" href="https://www.44idigital.com/why-44i" data-fourge-seo=""><meta name="robots" content="index,follow" data-fourge-seo=""><meta property="og:title" content="Why 44i Digital — The White Label Partner That Picks Up the Phone" data-fourge-seo=""><meta property="og:description" content="Six structural differences that separate 44i Digital from typical white label providers: US-based fulfillment, month-to-month terms and a revenue guarantee." data-fourge-seo=""><meta property="og:image" content="https://44idigital.com/assets/blog/danger-of-buzzwords.jpg" data-fourge-seo=""><meta property="og:url" content="https://www.44idigital.com/why-44i" data-fourge-seo=""><meta property="og:type" content="website" data-fourge-seo=""><meta name="twitter:card" content="summary_large_image" data-fourge-seo=""><meta name="twitter:title" content="Why 44i Digital — The White Label Partner That Picks Up the Phone" data-fourge-seo=""><meta name="twitter:description" content="Six structural differences that separate 44i Digital from typical white label providers: US-based fulfillment, month-to-month terms and a revenue guarantee." data-fourge-seo=""><meta name="twitter:image" content="https://44idigital.com/assets/blog/danger-of-buzzwords.jpg" data-fourge-seo=""><script type="application/ld+json" data-fourge-seo="">{"@context":"https://schema.org","@graph":[{"@type":"LocalBusiness","name":"44i Digital","url":"https://www.44idigital.com","telephone":"6052717321","address":{"@type":"PostalAddress","streetAddress":"","addressLocality":"Sioux Falls","addressRegion":"SD","postalCode":"","addressCountry":"US"}},{"@type":"WebPage","name":"Why 44i Digital — The White Label Partner That Picks Up the Phone","url":"https://www.44idigital.com/why-44i","description":"Six structural differences that separate 44i Digital from typical white label providers: US-based fulfillment, month-to-month terms and a revenue guarantee."}]}</script><meta name="generator" content="Fourge 1.14.110">
+</head>
+<body class="nav-on-why">
+<!-- foundry-analytics-body:start --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MM8WRJ8R" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- foundry-analytics-body:end --><a href="#main" style="position:absolute;left:-9999px;top:0;">Skip to main content</a>
+<header>
+<nav class="top" aria-label="Primary">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="44i Digital — Return to homepage"><img src="assets/44i-digital-logo.svg" alt="44i Digital logo"></a>
+    <ul>
+      <li class="has-menu"><a href="#">Who We Serve</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="tv-radio">TV &amp; Radio Broadcasters<span class="desc">For station and group leaders</span></a>
+          <a href="agencies">Advertising Agencies<span class="desc">Fill every gap, invisibly</span></a>
+          <a href="publishers">Publishers<span class="desc">Newsrooms &amp; media publishers</span></a>
+          <a href="ooh">OOH Groups<span class="desc">Out-of-home &amp; billboard operators</span></a>
+        </div></div>
+      </li>
+      <li class="has-menu"><a href="services">What We Do</a>
+        <div class="dropdown"><div class="dropdown-inner">
+          <a href="services#tier-1">Online Visibility<span class="desc">The foundation — websites, SEO, GBP</span></a>
+          <a href="services#tier-2">Content Marketing<span class="desc">The walls — social, email, reputation</span></a>
+          <a href="services#tier-3">Targeted Digital<span class="desc">The roof — programmatic, OTT, SEM</span></a>
+        </div></div>
+      </li>
+      <li><a href="why-44i">Why 44i Digital</a></li>
+      <li><a href="success-stories">Stories</a></li>
+      <li><a href="blog" data-feid="f1_msg2a4xk">Blog</a></li>
+    </ul>
+    <div class="nav-right">
+      <button type="button" class="nav-burger" data-nav-burger="" aria-label="Open menu" aria-expanded="false"><span class="bar"></span></button>
+      <a class="nav-phone" href="tel:6052717321"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span class="phone-label">605.271.7321</span></a>
+      <a class="btn btn-primary" href="book-a-demo">Book a Demo</a>
+    </div>
+  </div>
+</nav>
+</header>
+<main id="main">
+<section id="page-hero" class="page-hero">
+  <div class="photo-bg" aria-hidden="true" style="background: url('assets/44i-why-hero-v2.jpg') center center / cover no-repeat; opacity: .8;"></div>
+  <div class="container">
+    <div class="crumbs"><a href="/">Home</a><span class="sep">/</span><span>Why 44i Digital</span></div>
+    <div class="page-hero-grid single">
+      <div>
+        <div class="eyebrow"><span class="dot"></span>Why we exist</div>
+        <h1 class="page-h1">We do things <span class="highlight">differently.</span> Here's the proof.</h1>
+        <p class="page-hero-sub">Most white label digital providers look identical from the outside. <b>We're not most providers.</b> Six structural decisions separate 44i Digital from the typical white label competitor and every other shop in this category.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a class="btn btn-primary btn-lg" href="book-a-demo">Book a demo to see the difference →</a>
+          <a class="btn btn-ghost btn-lg" href="#diffs">Read the six differences</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="diffs">
+  <div class="container">
+    <div class="diffs-grid">
+
+      <aside class="diffs-sticky" aria-hidden="true">
+        <div class="diffs-illus-wrap">
+
+          <!-- 1. MARGINS — pie chart with bars (user-provided illustration) -->
+          <div class="diff-illus" data-diff="margins">
+            <img src="assets/44i-chart.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+          <!-- 2. GUARANTEE — dollar in circle with arrow loop -->
+          <div class="diff-illus" data-diff="guarantee">
+            <img src="assets/44i-chart-revenue.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+          <!-- 3. TEAM — dedicated people + cards -->
+          <div class="diff-illus" data-diff="team">
+            <img src="assets/44i-puzzle.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+          <!-- 4. TRAINING — laptop + chart -->
+          <div class="diff-illus" data-diff="training">
+            <img src="assets/44i-training.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+          <!-- 5. FLEXIBILITY — center gear + 8 arrows -->
+          <div class="diff-illus" data-diff="flexibility">
+            <img src="assets/44i-arrows.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+          <!-- 6. US-BASED — globe + figure -->
+          <div class="diff-illus" data-diff="us-based">
+            <img src="assets/44i-shield.png" alt="" class="illus-img" aria-hidden="true">
+          </div>
+
+        </div>
+
+      </aside>
+
+      <div class="diffs-content">
+
+        <article class="diff-block" id="diff-margins" data-diff="margins">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 01 · Margins</span>
+            <h2>You keep <span class="em">more.</span> Every month.</h2>
+          </div>
+          <p>The dirty secret of white label digital is that most providers price their services to maximize their own margin — not yours. They take 40–50% off the top before you see a dollar. Then they add platform fees, technology fees, reporting fees, and a half-dozen line items nobody can clearly explain.</p>
+          <p>We do the opposite. <b>Higher revenue share. Zero hidden fees. Transparent pricing on every campaign.</b></p>
+          <p>When you walk into your sales meeting and look at what you keep on a $10,000 digital deal, the difference becomes obvious. More revenue stays with your company, where it belongs.</p>
+          <p>Compare your current line items to ours. We'll do it live during a demo.</p>
+        </article>
+
+        <article class="diff-block" id="diff-guarantee" data-diff="guarantee">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 02 · Revenue guarantee</span>
+            <h2>We bet on <span class="em">our own program.</span></h2>
+          </div>
+          <p>Every white label provider promises growth. Very few are willing to guarantee it. We are.</p>
+          <p>Follow the 44i Digital Partner Growth Program, participate in the weekly training sessions, implement the sales process, and complete the certification track. If the program isn't generating revenue for your team, we'll return your retainer. <b>Not a credit. Not a future discount. Your money back.</b></p>
+          <p>Most competitors won't put that commitment in writing because they can't confidently stand behind their process. We can — because we've seen it work time and time again.</p>
+        </article>
+
+        <article class="diff-block" id="diff-team" data-diff="team">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 03 · Your team</span>
+            <h2>Not a help desk. <span class="em">Your own digital department.</span></h2>
+          </div>
+          <p>Most white label providers give you a support portal and a generic email address. We give you a dedicated team.</p>
+          <p>Your Account Director helps drive sales activity and keeps your program moving forward. Your Campaign Manager oversees fulfillment and campaign performance. Your Trainer works directly with your sellers to build confidence and capability.</p>
+          <p>These are real people with direct phone numbers who know your market, understand your advertisers, and become an extension of your organization.</p>
+          <p>To your clients, everything operates under your brand. <b>You sell it. We fulfill it. Your clients never see anything but your company.</b></p>
+        </article>
+
+        <article class="diff-block" id="diff-training" data-diff="training">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 04 · Training</span>
+            <h2>Weekly. Structured. <span class="em">Designed to change behavior.</span></h2>
+          </div>
+          <p>The biggest reason most sellers struggle with digital isn't effort. It's uncertainty.</p>
+          <p>Most account executives were never formally trained to sell digital products. They don't know where to start, how to position solutions, how to explain performance metrics, or how to confidently lead a digital conversation. As a result, they often default back to the products they've sold for years.</p>
+          <p>The 44i model fixes this from both sides.</p>
+          <p>Our structured weekly training program gives your sellers the language, proof points, discovery questions, and talking tracks they need to confidently lead with digital — while maintaining the relationship-first selling style that made them successful in the first place.</p>
+          <p>The certification track gives them something tangible they can use in client meetings and something they can proudly add to their professional credentials.</p>
+          <p>Most importantly, our full-service fulfillment removes the fear of execution. Your team doesn't have to become digital experts overnight. They sell the solution, we deliver the results, and everything remains under your brand.</p>
+          <p>Within the first quarter, conversations begin to change. Your sellers stop avoiding digital and start opening with it.</p>
+          <p>Within two quarters, digital revenue stops being something leadership hopes will grow and becomes a measurable revenue stream your CFO is highlighting in board meetings.</p>
+          <p><b>That's the difference between offering digital and building a digital sales culture.</b></p>
+        </article>
+
+        <article class="diff-block" id="diff-flexibility" data-diff="flexibility">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 05 · Flexibility</span>
+            <h2>We work around <span class="em">your business</span> — not the other way around.</h2>
+          </div>
+          <p>Most white label providers force you into a predefined package of products, minimum commitments, and rigid processes. We start with your goals and build around what already exists.</p>
+          <p>Have an in-house social media specialist? Great. Already offer website development? Perfect. Need help with SEO, paid search, programmatic advertising, streaming audio, OTT, or reputation management? We'll fill the gaps.</p>
+          <p>You don't have to replace what's already working. We simply strengthen the areas that create more revenue opportunities.</p>
+          <p><b>No rigid formulas. No unnecessary requirements. No one-size-fits-all approach.</b></p>
+        </article>
+
+        <article class="diff-block" id="diff-us-based" data-diff="us-based">
+          <div class="diff-block-head" data-landmark="was-header">
+            <span class="section-eyebrow">Difference 06 · 100% US-based</span>
+            <h2>Built here. Managed here. <span class="em">Delivered here.</span></h2>
+          </div>
+          <p>Many white label providers rely on offshore fulfillment teams. Campaigns are built by people who have never visited your market. Reports are written by people unfamiliar with your advertisers, your audience, or your business.</p>
+          <p>At 44i Digital, every campaign is built and managed in Sioux Falls, South Dakota. Every report is reviewed by our team. Every phone call rings in our office. Every strategy discussion happens with professionals who understand local media and local advertising.</p>
+          <p><b>100% U.S.-based. Zero outsourcing. Ever.</b></p>
+          <p>It's one of the most important quality decisions we've made, and one of the biggest reasons our partners stay with us.</p>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<script>
+  (function(){
+    const blocks  = document.querySelectorAll('.diff-block');
+    const illuses = document.querySelectorAll('.diff-illus');
+    if (!blocks.length) return;
+
+    let currentId = null;
+    function activate(id) {
+      if (id === currentId) return;
+      currentId = id;
+      illuses.forEach(el => el.classList.toggle('active', el.dataset.diff === id));
+    }
+    function clearActive() {
+      if (currentId === null) return;
+      currentId = null;
+      illuses.forEach(el => el.classList.remove('active'));
+    }
+
+    // Scrollspy: the active block is the one whose top edge most-recently
+    // crossed above the trigger line (~30% from viewport top — the level
+    // where the sticky illustration sits). No block above line → nothing active.
+    let ticking = false;
+    function update() {
+      ticking = false;
+      const triggerLine = window.innerHeight * 0.30;
+      let active = null;
+      let activeTop = -Infinity;
+      blocks.forEach(b => {
+        const r = b.getBoundingClientRect();
+        if (r.top <= triggerLine && r.top > activeTop) {
+          activeTop = r.top;
+          active = b;
+        }
+      });
+      if (active) activate(active.dataset.diff);
+      else clearActive();
+    }
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
+  })();
+</script>
+
+<section id="guarantee" class="guarantee">
+  <div class="inner">
+    <div>
+      <p>We're so confident in our program that if you follow it — and it's not working — <b>we give your retainer back.</b> That's the 44i Digital guarantee.</p>
+      <p class="fine">Requires active participation in our weekly training program. Specifics discussed on demo call.</p>
+    </div>
+  </div>
+</section>
+
+<section id="faqs" class="faqs section">
+  <div class="faqs-inner container">
+    <div class="faqs-head section-header">
+      <p class="eyebrow-light section-eyebrow">Everything you need to know</p>
+      <h2 class="h2-light display section-h2">Common questions, <span class="highlight">honest answers.</span></h2>
+      <p class="section-sub">Five of the questions partners ask most before they pick up the phone.</p>
+    </div>
+    
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false"><span>What makes 44i Digital different from the typical white label competitor?</span><span class="faq-sign">+</span></button>
+        <div class="faq-answer"><p>Three structural differences. <b>First:</b> we give you a dedicated team — your Account Director, Campaign Manager, and Trainer — not a help desk or shared inbox. <b>Second:</b> our margins to you are the highest in white label digital because we operate without hidden platform fees or padded line items. <b>Third:</b> we back our work with a revenue guarantee that's written into every partnership. Follow the program and it doesn't generate revenue? You get your retainer back. Those three together is something none of our competitors can match.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false"><span>Does 44i Digital require a long-term contract?</span><span class="faq-sign">+</span></button>
+        <div class="faq-answer"><p>No. We don't believe in locking partners into multi-year deals that they outgrow or regret. Our partnerships are structured around our Partner Growth Program — you start, we deliver, and you stay because the math keeps working. <b>If you ever need to leave, you can.</b> The fact that almost no one does is the proof that the model works.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false"><span>What happens if my team doesn't sell much digital in the first few months?</span><span class="faq-sign">+</span></button>
+        <div class="faq-answer"><p>This is the question we get most often, and it's the reason we built the revenue guarantee. <b>If your team participates in the weekly training program, completes the certification track, and runs the playbook — and digital revenue isn't growing — we refund the retainer.</b> No legal gymnastics. No partial credit toward future fees. The check, back to you. We can offer this because we've never had to honor it.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false"><span>Can I white label 44i Digital under my own brand completely?</span><span class="faq-sign">+</span></button>
+        <div class="faq-answer"><p>Yes — and this is what we mean when we say "invisibly." Every proposal goes out under your brand. Every report carries your logo. Every email signature, every campaign tag, every meeting your sellers run with clients — your brand, your team, your win. <b>Your clients will never know we exist.</b> That's the model. If they ever do meet someone from 44i Digital, it's because you introduced us as "part of the digital team."</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button type="button" class="faq-q" aria-expanded="false"><span>Do I need a dedicated digital person on my team to work with 44i Digital?</span><span class="faq-sign">+</span></button>
+        <div class="faq-answer"><p>No. The most successful partnerships we've ever launched started with zero digital headcount on the partner side — just an interested GM and a willing sales team. Our weekly training program builds digital fluency into your existing sellers. By month three, most of them are leading client conversations with digital options before they bring up traditional. <b>You don't need to hire to start. You may not need to hire ever.</b></p></div>
+      </div>
+
+    
+
+    <div style="text-align:center;margin-top:48px;">
+      <a class="btn btn-primary btn-lg" href="book-a-demo">Book a demo →</a>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final" id="contact-cta">
+  <div class="container">
+    <div class="cta-final-grid">
+      <div>
+        <span class="section-eyebrow cta-eyebrow">Ready when you are.</span>
+        <h2 class="display">Let's talk about <span class="highlight">your</span> market.</h2>
+        <p>One free 30-minute call. No commitment. No hard sell. Just a real conversation about what's possible.</p>
+        <ul class="checklist">
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            Custom revenue opportunity analysis for your market
+          </li>
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            See white-labeled proposals, training, and reporting live
+          </li>
+          <li>
+            <img class="check" src="assets/44i-checkmark.png" alt="Checkmark">
+            Backed by our revenue guarantee — risk is on us
+          </li>
+        </ul>
+        <div class="phone-cta">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+          <div>
+            <a href="tel:6052717321" class="num">605.271.7321</a>
+            <span class="sub">Or just call. A real person will answer.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Book Your Free Demo</h3>
+        <p class="sub">Response within one business hour. Mon-Fri, 8a-5p CT.</p>
+        <style>#ffm-form-maojy input,#ffm-form-maojy textarea,#ffm-form-maojy select{border-radius:80px !important}#ffm-form-maojy .ff-submit,#ffm-form-maojy .ff-next,#ffm-form-maojy .ff-prev{border-radius:80px !important}#ffm-form-maojy .ff-submit,#ffm-form-maojy .ff-next{background:#2c4863 !important}</style><style>/* ───── Form card ───── */
+.form-card { background: var(--paper); color: var(--ink); border-radius: 28px; padding: 40px; }
+.form-card h3 { font-family: 'Manrope', system-ui, sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.form-card .sub { font-size: 14px; color: var(--ink-quiet); margin-bottom: 24px; }
+
+/* ───── Fields ───── */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+.field input, .field select, .field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 10px; font-size: 15px; font-family: inherit; background: var(--cream); color: var(--ink); transition: all .2s; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--ink); background: var(--paper); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ───── Submit + fine print ───── */
+.submit-row { margin-top: 20px; }
+.submit-row .btn { width: 100%; padding: 16px; font-size: 16px; }
+.disclaimer { font-size: 11px; color: var(--ink-quiet); line-height: 1.5; margin-top: 14px; }
+
+/* ───── Mobile ───── */
+@media (max-width: 640px) {
+  .field-row { grid-template-columns: 1fr; }
+  .form-card { padding: 28px; }
+}
+
+.foundry-form .ff-choice {
+font-size: 8px;
+}
+
+.foundry-form input[type=radio], .foundry-form input[type=checkbox] {
+margin-top: -42px;
+}
+
+.foundry-form .ff-req {
+display: none;
+}</style><form class="foundry-form" id="ffm-form-maojy" data-form-id="form-maojy" data-phone-us="1" data-confirm="Thank you! We will be in contact with you soon to schedule your demo." onsubmit="return ffSubmit(event,this)"><div class="ff-page" data-page="0"><div class="ff-field ff-half"><label class="ff-label">Your Name <span class="ff-req">*</span></label><input type="text" name="your-name-iyy2" placeholder="James" required="" data-fid="iyy2yry"></div><div class="ff-field ff-half"><label class="ff-label">Your station / agency <span class="ff-req">*</span></label><input type="text" name="your-station--agency-9ncq" placeholder="Your station / agency" required="" data-fid="9ncqfzc"></div><div class="ff-field"><label class="ff-label">Partner Type <span class="ff-req">*</span></label><select name="partner-type-zgza" required="" data-fid="zgzauih"><option value="">Select…</option><option value="TV Station / Group">TV Station / Group</option><option value="Radio Station / Group">Radio Station / Group</option><option value="Advertising Agency">Advertising Agency</option><option value="Digital Agency">Digital Agency</option><option value="Media Publisher">Media Publisher</option><option value="Other">Other</option></select></div><div class="ff-field"><label class="ff-label">Market / City <span class="ff-req">*</span></label><input type="text" name="market--city-ns6u" placeholder="Sioux Falls, SD" required="" data-fid="ns6uycv"></div><div class="ff-field ff-half"><label class="ff-label">Email <span class="ff-req">*</span></label><input type="email" name="email-hod8" placeholder="you@company.com" required="" data-fid="hod8kz4"></div><div class="ff-field ff-half"><label class="ff-label">Phone Number <span class="ff-req">*</span></label><input type="tel" name="phone-number-irc8" placeholder="(605) 555-0142" required="" data-fid="irc8mk9"></div><div class="ff-field"><label class="ff-label">T &amp; C <span class="ff-req">*</span></label><div class="ff-choices" data-fid="ki0z8oo"><label class="ff-choice"><input type="checkbox" name="t--c-ki0z[]" value="By providing your phone number and submitting this form, you consent to receive automated SMS text messages from 44i Digital at the number provided. These messages may include demo confirmations, follow-up information, and partnership updates. Message and data rates may apply. Message frequency will vary. You may opt out at any time by replying STOP. Reply HELP for assistance. View our Privacy Policy at 44idigital.com/privacy and our Terms of Service at 44idigital.com/terms."> By providing your phone number and submitting this form, you consent to receive automated SMS text messages from 44i Digital at the number provided. These messages may include demo confirmations, follow-up information, and partnership updates. Message and data rates may apply. Message frequency will vary. You may opt out at any time by replying STOP. Reply HELP for assistance. View our Privacy Policy at 44idigital.com/privacy and our Terms of Service at 44idigital.com/terms.</label></div></div><input type="hidden" name="source_page" value="demo_page"></div><div class="ff-msg" style="display:none"></div><button type="submit" class="ff-submit">Reserve My Demo Spot →</button></form>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a class="footer-logo" href="/" aria-label="44i Digital">
+          <img src="assets/44i-digital-logo-reverse.svg" alt="44i Digital logo">
+        </a>
+        <p class="foot-tagline">The white label partner that picks up the phone.</p>
+        <div class="foot-contact">
+          1600 S. Western Ave.<br>
+          Sioux Falls, SD 57105<br>
+          <a href="tel:6052717321">605.271.7321</a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h5>Who We Serve</h5>
+        <ul>
+          <li><a href="tv-radio">TV &amp; Radio</a></li>
+          <li><a href="agencies">Advertising Agencies</a></li>
+          <li><a href="publishers">Publishers</a></li>
+          <li><a href="ooh">OOH Groups</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>What We Do</h5>
+        <ul>
+          <li><a href="services#tier-1">Online Visibility</a></li>
+          <li><a href="services#tier-2">Content Marketing</a></li>
+          <li><a href="services#tier-3">Targeted Digital</a></li>
+          <li><a href="services">All Services</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Why 44i Digital</h5>
+        <ul>
+          <li><a href="why-44i">The 44i Digital Difference</a></li>
+          <li><a href="success-stories">Success Stories</a></li>
+          <li><a href="blog">Blog</a></li>
+          <li><a href="book-a-demo">Book a Demo</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 44i Digital. All rights reserved.</div>
+      <div>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Accessibility Statement</a>
+        <a href="#">Partner Login</a>
+      </div>
+    </div>
+  </div>
+</footer>
+<script defer="" src="nav.js"></script>
+<script src="/adaptify.js" defer=""></script><script>function ffApiBase(){return (window.FOUNDRY_API||"/admin/api.php");}function ffEvalCond(form){form.querySelectorAll("[data-cond-field]").forEach(function(el){var fid=el.getAttribute("data-cond-field"),op=el.getAttribute("data-cond-op"),val=el.getAttribute("data-cond-val");var src=form.querySelector("[data-fid=\""+fid+"\"]");var cur="";if(src){if(src.type==="checkbox"||src.type==="radio"){var ch=form.querySelector("[data-fid=\""+fid+"\"] input:checked")||(src.checked?src:null);cur=ch?ch.value:"";}else cur=src.value;}else{var grp=form.querySelector("[data-fid=\""+fid+"\"]");if(grp){var c=grp.querySelector("input:checked");cur=c?c.value:"";}}var show=(op==="is")?(cur===val):(op==="is not")?(cur!==val):(op==="contains")?(cur.indexOf(val)>=0):true;el.style.display=show?"":"none";});}document.addEventListener("input",function(e){var f=e.target.closest(".foundry-form");if(f)ffEvalCond(f);});document.addEventListener("change",function(e){var f=e.target.closest(".foundry-form");if(f)ffEvalCond(f);});document.querySelectorAll(".foundry-form").forEach(function(f){ffEvalCond(f);});function ffPage(f,dir){var pages=f.querySelectorAll(".ff-page");var cur=0;pages.forEach(function(p,i){if(p.style.display!=="none")cur=i;});var nx=cur+dir;if(nx<0||nx>=pages.length)return;pages[cur].style.display="none";pages[nx].style.display="";f.querySelector(".ff-prev").style.display=nx>0?"":"none";f.querySelector(".ff-next").style.display=nx<pages.length-1?"":"none";f.querySelector(".ff-submit").style.display=nx===pages.length-1?"":"none";}document.addEventListener("click",function(e){var b=e.target.closest(".ff-prev,.ff-next");if(b){var f=b.closest(".foundry-form");if(f)ffPage(f,parseInt(b.getAttribute("data-dir")));}});async function ffSubmit(e,form){e.preventDefault();var msg=form.querySelector(".ff-msg");var btn=form.querySelector(".ff-submit");var data={};new FormData(form).forEach(function(v,k){if(data[k]){data[k]+=", "+v;}else data[k]=v;});btn.disabled=true;btn.textContent="Sending…";var rcTok="";var rcV3=form.getAttribute("data-rc-v3")||(window.__fourgeRcV3&&window.__fourgeRcSiteKey)||"";if(rcV3&&window.grecaptcha&&grecaptcha.execute&&grecaptcha.ready){try{rcTok=await Promise.race([new Promise(function(res){try{grecaptcha.ready(function(){grecaptcha.execute(rcV3,{action:"submit"}).then(res).catch(function(){res("");});});}catch(_e){res("");}}),new Promise(function(res){setTimeout(function(){res("");},4000);})]);}catch(e){rcTok="";}}else{rcTok=(form.querySelector("[name=g-recaptcha-response]")||{}).value||"";}try{var res=await fetch(ffApiBase(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"send_form",formId:form.getAttribute("data-form-id"),fields:data,recaptcha:rcTok,subject:document.title,siteUrl:location.href})});var d=await res.json();if(d.error)throw new Error(d.error);msg.className="ff-msg ok";msg.style.display="";msg.textContent=form.getAttribute("data-confirm");form.querySelectorAll(".ff-page,.ff-nav,.ff-submit").forEach(function(x){x.style.display="none";});}catch(err){msg.className="ff-msg err";msg.style.display="";msg.textContent="Something went wrong: "+err.message;btn.disabled=false;btn.textContent="Submit";}return false;}</script><!-- foundry-custom-body:start -->
+<!-- Functional -->
+<!-- 44i: after a form submit, send the lead to Billy calendar with their details prefilled -->
+<script>
+(function () {
+  if (window.__ffCalRedirect) return;
+  window.__ffCalRedirect = true;
+  var CAL = "https://api.leadconnectorhq.com/widget/booking/A21wgWRxkLrH6fxGwdAt";
+  var tries = 0;
+  function patch() {
+    if (typeof window.ffSubmit !== "function") {
+      if (++tries > 60) return;
+      return setTimeout(patch, 100);
+    }
+    var original = window.ffSubmit;
+    window.ffSubmit = async function (event, form) {
+      var f = form || (event && event.target);
+      function val(sel) {
+        try { var el = f && f.querySelector(sel); return el && el.value ? el.value.trim() : ""; }
+        catch (e) { return ""; }
+      }
+      var name  = val("[name^=your-name]");
+      var email = val("[name^=email]");
+      var phone = val("[name^=phone]");
+      var result = await original.apply(this, arguments);
+      try {
+        var ok = (f && f.querySelector(".ff-msg.ok")) || document.querySelector(".ff-msg.ok");
+        if (!ok || getComputedStyle(ok).display === "none") return result;
+        var q = new URLSearchParams();
+        var parts = name.split(/\s+/).filter(Boolean);
+        if (parts[0]) q.set("first_name", parts[0]);
+        if (parts.length > 1) q.set("last_name", parts.slice(1).join(" "));
+        if (email) q.set("email", email);
+        if (phone) q.set("phone", phone);
+        var url = CAL + (q.toString() ? "?" + q.toString() : "");
+        setTimeout(function () { window.location.href = url; }, 1500);
+      } catch (e) {}
+      return result;
+    };
+  }
+  patch();
+})();
+</script>
+<!-- Analytics -->
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MM8WRJ8R"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<!-- Marketing -->
+<script src="/willow.js" defer></script>
+<!-- foundry-custom-body:end -->
+</body></html>
