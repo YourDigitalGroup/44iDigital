@@ -101,3 +101,51 @@
   bh.src = 'https://www.bugherd.com/sidebarv2.js?apikey=cohnwzqmccvlvqgyvjfdhq';
   s.parentNode.insertBefore(bh, s);
 })(document, 'script');
+
+// ── Rev 5.1 nav/footer fallback ─────────────────────────────────────────────
+// Most pages carry the updated nav (Why 44i dropdown, Creative item) and the
+// footer legal links statically. A few pages are generated live by the CMS
+// (e.g. blog.html) and can't be edited from the repo — this patches them at
+// runtime, and no-ops (idempotently) on pages that already have the markup.
+(function () {
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  ready(function () {
+    var nav = document.querySelector('nav.top');
+    if (nav && !nav.querySelector('a[href^="fourge-insights"]')) {
+      var why = null;
+      nav.querySelectorAll('ul > li > a').forEach(function (a) {
+        if (/^Why 44i Digital$/.test(a.textContent.trim())) why = a;
+      });
+      var li = why && why.closest('li');
+      if (li && !li.classList.contains('has-menu')) {
+        var ext = /\.html$/.test(why.getAttribute('href') || '') ? '.html' : '';
+        li.classList.add('has-menu');
+        var dd = document.createElement('div');
+        dd.className = 'dropdown';
+        dd.innerHTML = '<div class="dropdown-inner">' +
+          '<a href="why-44i' + ext + '">The 44i Digital Difference<span class="desc">Six structural differences</span></a>' +
+          '<a href="fourge-insights' + ext + '">Fourge Insights<span class="desc">The audit behind every program</span></a>' +
+          '<a href="digital-certification' + ext + '">Digital Certification<span class="desc">The credential your sellers earn</span></a>' +
+          '<a href="why-44i' + ext + '#pricing">Pricing<span class="desc">One $299 license, everything included</span></a>' +
+          '</div>';
+        li.appendChild(dd);
+      }
+      var t3 = nav.querySelector('a[href$="#tier-3"]');
+      if (t3 && !nav.querySelector('a[href$="#creative"]')) {
+        var ext2 = /services\.html/.test(t3.getAttribute('href') || '') ? '.html' : '';
+        var c = document.createElement('a');
+        c.href = 'services' + ext2 + '#creative';
+        c.innerHTML = 'Creative<span class="desc">Design, copy, video production</span>';
+        t3.parentNode.insertBefore(c, t3.nextSibling);
+      }
+    }
+    var map = { 'Privacy Policy': 'privacy', 'Terms of Service': 'terms', 'Accessibility Statement': 'accessibility' };
+    document.querySelectorAll('footer a[href="#"]').forEach(function (a) {
+      var to = map[a.textContent.trim()];
+      if (to) a.setAttribute('href', to);
+    });
+  });
+})();
