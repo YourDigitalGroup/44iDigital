@@ -48,7 +48,7 @@
   var DEFAULTS = {
     name: 'Willow',
     tagline: 'Partner Program Guide · 44i Digital',
-    avatar: 'willow.jpg',                    // site-root relative or full URL
+    avatar: '/willow.jpg',                    // site-root relative or full URL
     api: '/admin/api.php',                   // Fourge CMS endpoint
     formId: 'willow-partner-bot',            // groups entries under Forms
     subject: 'New Willow Chat Lead',         // email subject prefix
