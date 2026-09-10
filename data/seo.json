@@ -89,5 +89,12 @@
     "aeoAnswer": "",
     "aeoTopics": [],
     "aeoFAQs": []
+  },
+  "__site": {
+    "separator": "|",
+    "defaultOg": "https://www.44idigital.com/assets/og/og-44i-default.jpg",
+    "orgType": "LocalBusiness",
+    "includeOrg": true,
+    "robotsTxt": ""
   }
 }
