@@ -40,18 +40,50 @@
 # 404 on www. One hop each, no chains.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^media-publishers/?$ https://www.44idigital.com/publishers [R=301,L,NC]
+  RewriteRule ^media-publishers/?$ https://www.44idigital.com/who-we-serve/publishers/ [R=301,L,NC]
   RewriteRule ^why-choose-us/?$ https://www.44idigital.com/why-44i [R=301,L,NC]
-  RewriteRule ^markets/?$ https://www.44idigital.com/success-stories [R=301,L,NC]
-  RewriteRule ^(television-radio|broadcast)/?$ https://www.44idigital.com/tv-radio [R=301,L,NC]
-  RewriteRule ^(advertising-agencies|traditional-agencies)/?$ https://www.44idigital.com/agencies [R=301,L,NC]
+  RewriteRule ^markets/?$ https://www.44idigital.com/stories/ [R=301,L,NC]
+  RewriteRule ^(television-radio|broadcast)/?$ https://www.44idigital.com/who-we-serve/tv-radio/ [R=301,L,NC]
+  RewriteRule ^(advertising-agencies|traditional-agencies)/?$ https://www.44idigital.com/who-we-serve/agencies/ [R=301,L,NC]
   RewriteRule ^(contact|contact-us|free-demo)/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
   RewriteRule ^(about|about-us|our-team)/?$ https://www.44idigital.com/why-44i [R=301,L,NC]
+  # Option B cutover (Sept 2026) — flat URLs moved into the hub-and-spoke tree.
+  # These run before the clean-URL block, so stale flat .html files left on the
+  # server by earlier (non-deleting) deploys can never serve at the old URLs.
+  RewriteRule ^tv\-radio(\.html)?/?$ https://www.44idigital.com/who-we-serve/tv-radio/ [R=301,L,NC]
+  RewriteRule ^agencies(\.html)?/?$ https://www.44idigital.com/who-we-serve/agencies/ [R=301,L,NC]
+  RewriteRule ^publishers(\.html)?/?$ https://www.44idigital.com/who-we-serve/publishers/ [R=301,L,NC]
+  RewriteRule ^ooh(\.html)?/?$ https://www.44idigital.com/who-we-serve/ooh/ [R=301,L,NC]
+  RewriteRule ^success\-stories(\.html)?/?$ https://www.44idigital.com/stories/ [R=301,L,NC]
+  RewriteRule ^fourge\-insights(\.html)?/?$ https://www.44idigital.com/program/fourge-insights/ [R=301,L,NC]
+  RewriteRule ^digital\-certification(\.html)?/?$ https://www.44idigital.com/program/digital-certification/ [R=301,L,NC]
+  RewriteRule ^who-we-serve\.html$ https://www.44idigital.com/who-we-serve/ [R=301,L,NC]
+  RewriteRule ^services\.html$ https://www.44idigital.com/services/ [R=301,L,NC]
+  RewriteRule ^services/streaming\-tv\-ctv(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/streaming-tv/ [R=301,L,NC]
+  RewriteRule ^service-streaming\-tv\-ctv(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/streaming-tv/ [R=301,L,NC]
+  RewriteRule ^services/geofencing\-location\-targeting(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/location-targeting/ [R=301,L,NC]
+  RewriteRule ^service-geofencing\-location\-targeting(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/location-targeting/ [R=301,L,NC]
+  RewriteRule ^services/seo\-aeo(\.html)?/?$ https://www.44idigital.com/services/online-visibility/seo-aeo/ [R=301,L,NC]
+  RewriteRule ^service-seo\-aeo(\.html)?/?$ https://www.44idigital.com/services/online-visibility/seo-aeo/ [R=301,L,NC]
+  RewriteRule ^services/paid\-search(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/search-engine-marketing/ [R=301,L,NC]
+  RewriteRule ^service-paid\-search(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/search-engine-marketing/ [R=301,L,NC]
+  RewriteRule ^services/paid\-social(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
+  RewriteRule ^service-paid\-social(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
+  RewriteRule ^services/programmatic\-display(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/targeted-display/ [R=301,L,NC]
+  RewriteRule ^service-programmatic\-display(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/targeted-display/ [R=301,L,NC]
+  RewriteRule ^services/onsite\-lead\-gen(\.html)?/?$ https://www.44idigital.com/services/online-visibility/onsite-lead-gen/ [R=301,L,NC]
+  RewriteRule ^service-onsite\-lead\-gen(\.html)?/?$ https://www.44idigital.com/services/online-visibility/onsite-lead-gen/ [R=301,L,NC]
+  RewriteRule ^services/reputation\-management(\.html)?/?$ https://www.44idigital.com/services/content-marketing/reputation-management/ [R=301,L,NC]
+  RewriteRule ^service-reputation\-management(\.html)?/?$ https://www.44idigital.com/services/content-marketing/reputation-management/ [R=301,L,NC]
+  RewriteRule ^services/website\-development(\.html)?/?$ https://www.44idigital.com/services/online-visibility/website/ [R=301,L,NC]
+  RewriteRule ^service-website\-development(\.html)?/?$ https://www.44idigital.com/services/online-visibility/website/ [R=301,L,NC]
+  RewriteRule ^services/digital\-out\-of\-home(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/digital-out-of-home/ [R=301,L,NC]
+  RewriteRule ^service-digital\-out\-of\-home(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/digital-out-of-home/ [R=301,L,NC]
   # Old WP service child pages -> the matching new tactic page
-  RewriteRule ^services/seo/?$ https://www.44idigital.com/services/seo-aeo [R=301,L,NC]
-  RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/paid-social [R=301,L,NC]
-  RewriteRule ^services/websites?/?$ https://www.44idigital.com/services/website-development [R=301,L,NC]
-  RewriteRule ^services/targeted-display/?$ https://www.44idigital.com/services/programmatic-display [R=301,L,NC]
+  RewriteRule ^services/seo/?$ https://www.44idigital.com/services/online-visibility/seo-aeo/ [R=301,L,NC]
+  RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
+  RewriteRule ^services/websites?/?$ https://www.44idigital.com/services/online-visibility/website/ [R=301,L,NC]
+  RewriteRule ^services/targeted-display/?$ https://www.44idigital.com/services/targeted-digital/targeted-display/ [R=301,L,NC]
   # Old WP blog slugs: send to the matching new post when one exists, else /blog
   RewriteCond %{DOCUMENT_ROOT}/blog-$1.html -f
   RewriteRule ^blog/([a-z0-9-]+)/?$ /blog-$1 [R=301,L]
@@ -74,8 +106,8 @@
 # LinkedIn company page.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^what-we-offer/?$ /services [R=301,L,NC]
-  RewriteRule ^demo/?$ /book-a-demo [R=301,L,NC]
+  RewriteRule ^what-we-offer/?$ https://www.44idigital.com/services/ [R=301,L,NC]
+  RewriteRule ^demo/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
 </IfModule>
 
 
@@ -88,17 +120,12 @@
   RewriteRule ^(.+)/$ /$1 [R=301,L]
 </IfModule>
 
-# Rev 5.1 — tactic pages live at /services/<slug> (deck item H1) but are flat
-# service-<slug>.html files on disk, so /services itself keeps serving
-# services.html. Explicit /service-<slug>(.html) requests 301 to the canonical
-# /services/<slug> URL.
+# Option B — /services/<x> that is neither a tier directory nor a mapped legacy
+# slug falls back to the services hub instead of 404ing.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteCond %{THE_REQUEST} \s/+service-([a-z0-9-]+?)(?:\.html)?[\s?] [NC]
-  RewriteRule ^ /services/%1 [R=301,L]
-  RewriteCond %{DOCUMENT_ROOT}/service-$1.html -f
-  RewriteRule ^services/([a-z0-9-]+)/?$ service-$1.html [L]
-  RewriteRule ^services/[^/]+/?$ /services [R=301,L]
+  RewriteCond %{DOCUMENT_ROOT}/services/$1 !-d
+  RewriteRule ^services/([^/]+)/?$ https://www.44idigital.com/services/ [R=301,L]
 </IfModule>
 
 # Fourge — clean URLs.
