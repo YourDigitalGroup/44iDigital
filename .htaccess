@@ -79,6 +79,9 @@
   RewriteRule ^service-website\-development(\.html)?/?$ https://www.44idigital.com/services/online-visibility/website/ [R=301,L,NC]
   RewriteRule ^services/digital\-out\-of\-home(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/digital-out-of-home/ [R=301,L,NC]
   RewriteRule ^service-digital\-out\-of\-home(\.html)?/?$ https://www.44idigital.com/services/targeted-digital/digital-out-of-home/ [R=301,L,NC]
+  RewriteRule ^posts(\.html)?/?$ https://www.44idigital.com/blog [R=301,L,NC]
+  RewriteRule ^what-we-offer/?$ https://www.44idigital.com/services/ [R=301,L,NC]
+  RewriteRule ^demo/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
   # Old WP service child pages -> the matching new tactic page
   RewriteRule ^services/seo/?$ https://www.44idigital.com/services/online-visibility/seo-aeo/ [R=301,L,NC]
   RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
@@ -86,7 +89,7 @@
   RewriteRule ^services/targeted-display/?$ https://www.44idigital.com/services/targeted-digital/targeted-display/ [R=301,L,NC]
   # Old WP blog slugs: send to the matching new post when one exists, else /blog
   RewriteCond %{DOCUMENT_ROOT}/blog-$1.html -f
-  RewriteRule ^blog/([a-z0-9-]+)/?$ /blog-$1 [R=301,L]
+  RewriteRule ^blog/([a-z0-9-]+)/?$ https://www.44idigital.com/blog-$1 [R=301,L]
   RewriteRule ^blog/.+$ https://www.44idigital.com/blog [R=301,L]
   # WordPress machinery is gone
   RewriteRule ^(feed|xmlrpc\.php|wp-login\.php)/?$ - [G,L,NC]
@@ -99,15 +102,6 @@
   RewriteEngine On
   RewriteCond %{HTTP_HOST} ^44idigital\.com$ [NC]
   RewriteRule ^ https://www.44idigital.com%{REQUEST_URI} [L,R=301]
-</IfModule>
-
-# Rev 5.1 — legacy URLs (deck Part 3). /what-we-offer was the 2024 offerings
-# page (already gone; still indexed and linked); /demo is linked from the
-# LinkedIn company page.
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule ^what-we-offer/?$ https://www.44idigital.com/services/ [R=301,L,NC]
-  RewriteRule ^demo/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
 </IfModule>
 
 
