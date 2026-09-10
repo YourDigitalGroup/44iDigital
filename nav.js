@@ -142,6 +142,14 @@
         t3.parentNode.insertBefore(c, t3.nextSibling);
       }
     }
+    // who-we-serve hub replaces the dead '#' parent link
+    document.querySelectorAll('nav.top li.has-menu > a[href="#"]').forEach(function (a) {
+      if (/^Who We Serve$/.test(a.textContent.trim())) a.setAttribute('href', 'who-we-serve');
+    });
+    // Partner Login has no destination yet — remove the dead link
+    document.querySelectorAll('footer a[href="#"]').forEach(function (a) {
+      if (/^Partner Login$/.test(a.textContent.trim())) a.remove();
+    });
     var map = { 'Privacy Policy': 'privacy', 'Terms of Service': 'terms', 'Accessibility Statement': 'accessibility' };
     document.querySelectorAll('footer a[href="#"]').forEach(function (a) {
       var to = map[a.textContent.trim()];
