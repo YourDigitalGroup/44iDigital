@@ -82,6 +82,13 @@
   RewriteRule ^posts(\.html)?/?$ https://www.44idigital.com/blog [R=301,L,NC]
   RewriteRule ^what-we-offer/?$ https://www.44idigital.com/services/ [R=301,L,NC]
   RewriteRule ^demo/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
+  # From the GSC "Not found (404)" drilldown (Sept 2026) — old WordPress URLs
+  RewriteRule ^tv-radio-broadcasters/?$ https://www.44idigital.com/who-we-serve/tv-radio/ [R=301,L,NC]
+  RewriteRule ^white-label-demo/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
+  RewriteRule ^webinars/?$ https://www.44idigital.com/program/digital-certification/ [R=301,L,NC]
+  # WP date archives (/2025/03/10/, /2024/11/) and taxonomy archives -> the blog
+  RewriteRule ^[0-9]{4}/[0-9]{2}(/[0-9]{2})?/?$ https://www.44idigital.com/blog [R=301,L]
+  RewriteRule ^(category|tag|author)/. https://www.44idigital.com/blog [R=301,L,NC]
   # Old WP service child pages -> the matching new tactic page
   RewriteRule ^services/seo/?$ https://www.44idigital.com/services/online-visibility/seo-aeo/ [R=301,L,NC]
   RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
