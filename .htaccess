@@ -35,6 +35,32 @@
   RewriteRule ^posts/?$ /blog? [R=301,L,NC]
 </IfModule>
 
+# Post-deploy audit (Sept 2026) — legacy WordPress URLs, Section 3 map.
+# These are Google-indexed URLs from the old site; without these rules they
+# 404 on www. One hop each, no chains.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^media-publishers/?$ https://www.44idigital.com/publishers [R=301,L,NC]
+  RewriteRule ^why-choose-us/?$ https://www.44idigital.com/why-44i [R=301,L,NC]
+  RewriteRule ^markets/?$ https://www.44idigital.com/success-stories [R=301,L,NC]
+  RewriteRule ^(television-radio|broadcast)/?$ https://www.44idigital.com/tv-radio [R=301,L,NC]
+  RewriteRule ^(advertising-agencies|traditional-agencies)/?$ https://www.44idigital.com/agencies [R=301,L,NC]
+  RewriteRule ^(contact|contact-us|free-demo)/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
+  RewriteRule ^(about|about-us|our-team)/?$ https://www.44idigital.com/why-44i [R=301,L,NC]
+  # Old WP service child pages -> the matching new tactic page
+  RewriteRule ^services/seo/?$ https://www.44idigital.com/services/seo-aeo [R=301,L,NC]
+  RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/paid-social [R=301,L,NC]
+  RewriteRule ^services/websites?/?$ https://www.44idigital.com/services/website-development [R=301,L,NC]
+  RewriteRule ^services/targeted-display/?$ https://www.44idigital.com/services/programmatic-display [R=301,L,NC]
+  # Old WP blog slugs: send to the matching new post when one exists, else /blog
+  RewriteCond %{DOCUMENT_ROOT}/blog-$1.html -f
+  RewriteRule ^blog/([a-z0-9-]+)/?$ /blog-$1 [R=301,L]
+  RewriteRule ^blog/.+$ https://www.44idigital.com/blog [R=301,L]
+  # WordPress machinery is gone
+  RewriteRule ^(feed|xmlrpc\.php|wp-login\.php)/?$ - [G,L,NC]
+  RewriteRule ^wp-json(/.*)?$ - [G,L,NC]
+</IfModule>
+
 # Rev 5.1 — canonical host. Pages canonicalize to www; serve one hostname so
 # search engines and AI crawlers see a single URL per page (deck item C3).
 <IfModule mod_rewrite.c>
@@ -52,31 +78,6 @@
   RewriteRule ^demo/?$ /book-a-demo [R=301,L,NC]
 </IfModule>
 
-# Post-deploy audit (Sept 2026) — legacy WordPress URLs, Section 3 map.
-# These are Google-indexed URLs from the old site; without these rules they
-# 404 on www. One hop each, no chains.
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule ^media-publishers/?$ /publishers [R=301,L,NC]
-  RewriteRule ^why-choose-us/?$ /why-44i [R=301,L,NC]
-  RewriteRule ^markets/?$ /success-stories [R=301,L,NC]
-  RewriteRule ^(television-radio|broadcast)/?$ /tv-radio [R=301,L,NC]
-  RewriteRule ^(advertising-agencies|traditional-agencies)/?$ /agencies [R=301,L,NC]
-  RewriteRule ^(contact|contact-us|free-demo)/?$ /book-a-demo [R=301,L,NC]
-  RewriteRule ^(about|about-us|our-team)/?$ /why-44i [R=301,L,NC]
-  # Old WP service child pages -> the matching new tactic page
-  RewriteRule ^services/seo/?$ /services/seo-aeo [R=301,L,NC]
-  RewriteRule ^services/social-media/?$ /services/paid-social [R=301,L,NC]
-  RewriteRule ^services/websites?/?$ /services/website-development [R=301,L,NC]
-  RewriteRule ^services/targeted-display/?$ /services/programmatic-display [R=301,L,NC]
-  # Old WP blog slugs: send to the matching new post when one exists, else /blog
-  RewriteCond %{DOCUMENT_ROOT}/blog-$1.html -f
-  RewriteRule ^blog/([a-z0-9-]+)/?$ /blog-$1 [R=301,L]
-  RewriteRule ^blog/.+$ /blog [R=301,L]
-  # WordPress machinery is gone
-  RewriteRule ^(feed|xmlrpc\.php|wp-login\.php)/?$ - [G,L,NC]
-  RewriteRule ^wp-json(/.*)?$ - [G,L,NC]
-</IfModule>
 
 # Post-deploy audit — one URL per page: strip trailing slashes on non-directories
 # (the legacy WP URLs used them; every new URL is extensionless with no slash).
