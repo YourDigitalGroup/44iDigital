@@ -42,7 +42,7 @@
   RewriteEngine On
   RewriteRule ^media-publishers/?$ https://www.44idigital.com/who-we-serve/publishers/ [R=301,L,NC]
   RewriteRule ^why-choose-us/?$ https://www.44idigital.com/why-44i [R=301,L,NC]
-  RewriteRule ^markets/?$ https://www.44idigital.com/stories/ [R=301,L,NC]
+  RewriteRule ^markets(/.*)?$ https://www.44idigital.com/stories/ [R=301,L,NC]
   RewriteRule ^(television-radio|broadcast)/?$ https://www.44idigital.com/who-we-serve/tv-radio/ [R=301,L,NC]
   RewriteRule ^(advertising-agencies|traditional-agencies)/?$ https://www.44idigital.com/who-we-serve/agencies/ [R=301,L,NC]
   RewriteRule ^(contact|contact-us|free-demo)/?$ https://www.44idigital.com/book-a-demo [R=301,L,NC]
@@ -94,6 +94,30 @@
   RewriteRule ^services/social-media/?$ https://www.44idigital.com/services/targeted-digital/paid-social/ [R=301,L,NC]
   RewriteRule ^services/websites?/?$ https://www.44idigital.com/services/online-visibility/website/ [R=301,L,NC]
   RewriteRule ^services/targeted-display/?$ https://www.44idigital.com/services/targeted-digital/targeted-display/ [R=301,L,NC]
+  # GSC crawled-not-indexed drilldown: old WP post slugs -> their true new equivalents
+  RewriteRule ^blog/which-social-media-metrics-actually-matter/?$ https://www.44idigital.com/blog-social-metrics-matter [R=301,L,NC]
+  RewriteRule ^blog/how-to-create-social-content-that-drives-engagement/?$ https://www.44idigital.com/blog-social-content-engagement [R=301,L,NC]
+  RewriteRule ^blog/ott-crash-course-what-is-ott-and-how-can-it-enhance-my-clients-current-digital-marketing-efforts/?$ https://www.44idigital.com/blog-social-ott-ctv [R=301,L,NC]
+  RewriteRule ^blog/how-creative-fatigue-damages-campaigns/?$ https://www.44idigital.com/blog-creative-fatigue [R=301,L,NC]
+  RewriteRule ^blog/choosing-the-right-marketing-tactic/?$ https://www.44idigital.com/blog-choosing-marketing-tactic [R=301,L,NC]
+  RewriteRule ^blog/optimizing-your-local-listings/?$ https://www.44idigital.com/blog-local-listing-optimization [R=301,L,NC]
+  RewriteRule ^blog/how-to-choose-the-best-social-ad-format/?$ https://www.44idigital.com/blog-choose-social-ad-format [R=301,L,NC]
+  RewriteRule ^blog/optimizing-content-for-seo-aeo-best-practices/?$ https://www.44idigital.com/blog-seo-aeo-best-practices [R=301,L,NC]
+  RewriteRule ^blog/programmatic-video-vs-youtube-ads/?$ https://www.44idigital.com/blog-programmatic-video-vs-youtube [R=301,L,NC]
+  RewriteRule ^blog/zip-code-based-streaming-tv-advertising/?$ https://www.44idigital.com/blog-zip-code-streaming-tv [R=301,L,NC]
+  RewriteRule ^blog/understanding-the-ins-and-outs-of-websites/?$ https://www.44idigital.com/blog-build-best-website [R=301,L,NC]
+  RewriteRule ^blog/why-you-should-use-social-display-ads/?$ https://www.44idigital.com/blog-social-display-ads [R=301,L,NC]
+  RewriteRule ^blog/the-recent-changes-to-google/?$ https://www.44idigital.com/blog-recent-changes-to-google [R=301,L,NC]
+  RewriteRule ^blog/the-best-digital-tactics-for-political-advertising/?$ https://www.44idigital.com/blog-political-digital-tactics [R=301,L,NC]
+  RewriteRule ^blog/diversify-your-marketing-tactics-across-platforms/?$ https://www.44idigital.com/blog-diversify-marketing-tactics [R=301,L,NC]
+  RewriteRule ^blog/native-display-advertising-101/?$ https://www.44idigital.com/blog-native-display-101 [R=301,L,NC]
+  RewriteRule ^blog/ways-to-engage-holiday-shoppers/?$ https://www.44idigital.com/blog-engage-holiday-shoppers [R=301,L,NC]
+  RewriteRule ^blog/the-importance-of-engaging-social-captions/?$ https://www.44idigital.com/blog-engaging-social-captions [R=301,L,NC]
+  RewriteRule ^blog/build-the-best-website-for-your-business/?$ https://www.44idigital.com/blog-build-best-website [R=301,L,NC]
+  RewriteRule ^blog/pairing-together-radio-and-digital-sales/?$ https://www.44idigital.com/blog-radio-digital-sales [R=301,L,NC]
+  RewriteRule ^blog/the-different-types-of-targeted-display/?$ https://www.44idigital.com/blog-targeted-display-campaigns [R=301,L,NC]
+  RewriteRule ^blog/secrets-to-digital-marketing-success-revealed-through-detailed-reports/?$ https://www.44idigital.com/blog-reporting-secrets [R=301,L,NC]
+  RewriteRule ^blog/the-importance-of-keeping-your-businesss-google-business-profile-updated/?$ https://www.44idigital.com/blog-gbp-updated [R=301,L,NC]
   # Old WP blog slugs: send to the matching new post when one exists, else /blog
   RewriteCond %{DOCUMENT_ROOT}/blog-$1.html -f
   RewriteRule ^blog/([a-z0-9-]+)/?$ https://www.44idigital.com/blog-$1 [R=301,L]
@@ -101,6 +125,15 @@
   # WordPress machinery is gone
   RewriteRule ^(feed|xmlrpc\.php|wp-login\.php)/?$ - [G,L,NC]
   RewriteRule ^wp-json(/.*)?$ - [G,L,NC]
+</IfModule>
+
+# Old WordPress Wordfence beacon URLs (?wordfence_lh=...) — ~130 of them in
+# Google's crawl backlog. Strip to the clean homepage so they stop burning
+# crawl budget (the trailing "?" clears the query string).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{QUERY_STRING} (^|&)wordfence_lh= [NC]
+  RewriteRule ^ https://www.44idigital.com/? [R=301,L]
 </IfModule>
 
 # Rev 5.1 — canonical host. Pages canonicalize to www; serve one hostname so
