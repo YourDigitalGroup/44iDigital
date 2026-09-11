@@ -510,6 +510,23 @@ function cmsWriteFile($body) {
         echo json_encode(['error' => 'Refusing to overwrite ' . $relNorm . ': this site\'s copy is customized and deploys from GitHub (YourDigitalGroup/44iDigital). Ship changes through the repo, not the in-CMS updater.']);
         return;
     }
+    // ── repo-managed pages ────────────────────────────────────────────────────
+    // On Sept 11 a stale cached admin (template 1.14.110) republished the live
+    // homepage, why-44i, adaptify.js and pages.json from outdated block data,
+    // breaking the deployed design. These files ship from GitHub
+    // (YourDigitalGroup/44iDigital); the CMS may not overwrite them. Blog files
+    // (blog.html, blog-*.html, data/posts.json) stay CMS-managed on purpose.
+    $repoManaged = ['index.html','why-44i.html','book-a-demo.html','onboarding.html','glossary.html',
+        'privacy.html','terms.html','accessibility.html','who-we-serve.html','nav.js','willow.js',
+        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php'];
+    $repoPrefixes = ['services/','program/','who-we-serve/','stories/','assets/og/'];
+    $isRepoManaged = in_array($relNorm, $repoManaged, true);
+    foreach ($repoPrefixes as $pref) { if (strpos($relNorm, $pref) === 0) $isRepoManaged = true; }
+    if ($isRepoManaged) {
+        http_response_code(409);
+        echo json_encode(['error' => 'This page is managed in GitHub (YourDigitalGroup/44iDigital) and can\'t be edited from the CMS — publishing it here would overwrite the live design. Make the change through the repo instead.']);
+        return;
+    }
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     if (file_put_contents($dest, $content) === false) {
         http_response_code(500);
