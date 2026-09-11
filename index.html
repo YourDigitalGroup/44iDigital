@@ -1066,7 +1066,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <div class="face-tile"><img class="front" src="assets/people/44-people-05.png" alt=""><img class="back" src="assets/people/44-people-05.png" alt=""></div>
         <div class="face-tile"><img class="front" src="assets/people/44-people-06.png" alt=""><img class="back" src="assets/people/44-people-06.png" alt=""></div>
         <div class="face-tile"><img class="front" src="assets/people/44-people-07.png" alt=""><img class="back" src="assets/people/44-people-07.png" alt=""></div>
-        <div class="face-tile"><img class="front" src="assets/people/44-people-08.png" alt=""><img class="back" src="assets/people/44-people-08.png" alt=""></div>
+        <div class="face-tile"><img class="front" src="assets/people/44-people-09.png" alt=""><img class="back" src="assets/people/44-people-09.png" alt=""></div>
       </div>
     </div>
   </div>
@@ -1340,7 +1340,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 (function(){
   const grid = document.getElementById('teamGrid');
   if (!grid) return;
-  const pool = Array.from({length: 11}, (_, i) => `assets/people/44-people-${String(i+1).padStart(2,'0')}.png`);
+  const pool = ['01','02','03','04','05','06','07','09','10','11'].map(n => `assets/people/44-people-${n}.png`); // 08 removed — former team member
   const tiles = Array.from(grid.querySelectorAll('.face-tile'));
 
   function visibleSrcs() {
