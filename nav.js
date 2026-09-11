@@ -103,7 +103,7 @@
 })(document, 'script');
 
 // ── Rev 5.1 nav/footer fallback ─────────────────────────────────────────────
-// Most pages carry the updated nav (Why 44i dropdown, Creative item) and the
+// Most pages carry the updated nav (Why 44i Digital dropdown, Creative item) and the
 // footer legal links statically. A few pages are generated live by the CMS
 // (e.g. blog.html) and can't be edited from the repo — this patches them at
 // runtime, and no-ops (idempotently) on pages that already have the markup.

@@ -56,7 +56,7 @@
     accent: '#629ad0',                       // 44i Digital brand primary (blue)
     dark: '#2c4863',                         // 44i Digital brand secondary (navy)
     mode: 'auto',                            // 'bubble' | 'inline' | 'auto'
-    teaser: 'Hi! Exploring a 44i partnership? I can help.',
+    teaser: 'Hi! Exploring a 44i Digital partnership? I can help.',
     recaptchaSiteKey: '',                    // set only if site enforces reCAPTCHA v3
     start: 'hello',
     tree: {
@@ -79,7 +79,7 @@
       /* Direct-to-consumer redirect — 44i Digital is partner-only */
       dtc: { type: 'end', messages: [
         "Thanks for letting me know! 44i Digital works exclusively through partner organizations — agencies, media groups and publishers.",
-        "For websites or digital marketing for your own business, our sister company 44i would love to help:"
+        "For websites or digital marketing for your own business, our sister agency 44 Interactive would love to help:"
       ], links: [
         { label: 'Visit 44i.com', url: 'https://www.44i.com' },
         { label: 'Call 605-334-4464', url: 'tel:16053344464' }
@@ -91,8 +91,8 @@
           { label: 'Launch a digital program', next: 'q2a', outcome: 'Launch a Complete Digital Program' },
           { label: 'Expand our current offering', next: 'q2b', outcome: 'Expand Your Capabilities' },
           { label: 'Replace our current fulfillment partner', next: 'q2c', outcome: 'Evaluate a New Fulfillment Partnership' },
-          { label: 'Improve support, margins or scalability', next: 'q2d', outcome: 'Explore the 44i Partner Program' },
-          { label: 'Explore whether 44i is a fit', next: 'q2e', outcome: 'Explore the 44i Partner Program' }
+          { label: 'Improve support, margins or scalability', next: 'q2d', outcome: 'Explore the 44i Digital Partner Program' },
+          { label: 'Explore whether 44i Digital is a fit', next: 'q2e', outcome: 'Explore the 44i Digital Partner Program' }
         ] },
 
       q2a: { type: 'multi', saveAs: 'What has prevented you from launching?', allowSkip: true,
@@ -216,7 +216,7 @@
   }
   function fill(msg) {
     return String(msg)
-      .replace(/\{outcome\}/g, state.outcome || 'the 44i Partner Program')
+      .replace(/\{outcome\}/g, state.outcome || 'the 44i Digital Partner Program')
       .replace(/\{firstName\}/g, firstName())
       .replace(/\{phone\}/g, C.phone);
   }
