@@ -1,0 +1,157 @@
+// nav.js — burger toggle for tablet/mobile nav
+(function () {
+  const burgers = document.querySelectorAll('[data-nav-burger]');
+  if (!burgers.length) return;
+  function closeAll() {
+    document.querySelectorAll('nav.top.nav-open').forEach(n => n.classList.remove('nav-open'));
+    burgers.forEach(b => b.setAttribute('aria-expanded', 'false'));
+  }
+  burgers.forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const n = b.closest('nav.top');
+      if (!n) return;
+      const open = !n.classList.contains('nav-open');
+      n.classList.toggle('nav-open', open);
+      b.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('nav.top')) closeAll();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+  // Close drawer when a link in it is tapped
+  document.querySelectorAll('nav.top ul a, nav.top .dropdown-inner a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (a.closest('nav.top.nav-open')) setTimeout(closeAll, 50);
+    });
+  });
+})();
+
+// Reveal sticky illustrations on scroll (persona pages)
+(function () {
+  const arts = document.querySelectorAll('.legacy-art.scroll-art');
+  if (!arts.length || !('IntersectionObserver' in window)) {
+    arts.forEach(a => a.classList.add('in-view'));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in-view'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+  arts.forEach(a => io.observe(a));
+})();
+
+
+// FAQ accordion (.faq-q buttons) — one open at a time per group
+(function () {
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      const group = btn.closest('.faqs') && btn.closest('.faq-item') && btn.closest('.faq-item').parentElement;
+      if (group) {
+        group.querySelectorAll(':scope > .faq-item > .faq-q[aria-expanded="true"]').forEach(b => {
+          if (b !== btn) b.setAttribute('aria-expanded', 'false');
+        });
+      }
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const sign = btn.querySelector('.faq-sign');
+      if (sign) sign.textContent = expanded ? '+' : '−';
+    });
+  });
+})();
+
+// ── Remove stray legacy widgets baked into published pages ──────────────────
+// Two things can end up sitting in a published page as plain static markup,
+// independent of any JS that runs afterward: old LeadConnector <chat-widget>
+// embeds (custom code pasted more than once over time), and our own retired
+// cookie-consent button/card — removed from this file, but a page publish
+// had already snapshotted its rendered output directly into the page HTML,
+// so deleting the code here doesn't remove a copy already baked into a page.
+// Strip both the moment they appear — already in the DOM on load, or
+// inserted later by an async script — rather than track down every page.
+(function () {
+  var SELECTOR = 'chat-widget, [aria-label="Cookie preferences"]';
+  function purge(root) {
+    if (!root.querySelectorAll) return;
+    root.querySelectorAll(SELECTOR).forEach(function (el) { el.remove(); });
+  }
+  purge(document);
+  if (!('MutationObserver' in window)) return;
+  new MutationObserver(function (mutations) {
+    mutations.forEach(function (m) {
+      m.addedNodes.forEach(function (node) {
+        if (node.nodeType !== 1) return;
+        if (node.matches && node.matches(SELECTOR)) node.remove();
+        else purge(node);
+      });
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+// ── BugHerd feedback sidebar ────────────────────────────────────────────────
+// Homepage only for now (nav.js loads sitewide, so this is the gate to widen
+// when feedback review expands to more pages — the snippet itself needs no
+// per-page config; the page URL identifies where a submission came from).
+(function (d, t) {
+  if (!/^\/(index\.html)?$/.test(location.pathname)) return;
+  var bh = d.createElement(t), s = d.getElementsByTagName(t)[0];
+  bh.type = 'text/javascript';
+  bh.src = 'https://www.bugherd.com/sidebarv2.js?apikey=cohnwzqmccvlvqgyvjfdhq';
+  s.parentNode.insertBefore(bh, s);
+})(document, 'script');
+
+// ── Rev 5.1 nav/footer fallback ─────────────────────────────────────────────
+// Most pages carry the updated nav (Why 44i Digital dropdown, Creative item) and the
+// footer legal links statically. A few pages are generated live by the CMS
+// (e.g. blog.html) and can't be edited from the repo — this patches them at
+// runtime, and no-ops (idempotently) on pages that already have the markup.
+(function () {
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  ready(function () {
+    var nav = document.querySelector('nav.top');
+    if (nav && !nav.querySelector('a[href^="fourge-insights"], a[href*="/program/fourge-insights"]')) {
+      var why = null;
+      nav.querySelectorAll('ul > li > a').forEach(function (a) {
+        if (/^Why 44i Digital$/.test(a.textContent.trim())) why = a;
+      });
+      var li = why && why.closest('li');
+      if (li && !li.classList.contains('has-menu')) {
+        li.classList.add('has-menu');
+        var dd = document.createElement('div');
+        dd.className = 'dropdown';
+        dd.innerHTML = '<div class="dropdown-inner">' +
+          '<a href="/why-44i">The 44i Digital Difference<span class="desc">Six structural differences</span></a>' +
+          '<a href="/program/fourge-insights/">Fourge Insights<span class="desc">The audit behind every program</span></a>' +
+          '<a href="/program/digital-certification/">Digital Certification<span class="desc">The credential your sellers earn</span></a>' +
+          '<a href="/program/pricing/">Pricing<span class="desc">One $299 license, everything included</span></a>' +
+          '</div>';
+        li.appendChild(dd);
+      }
+      var t3 = nav.querySelector('a[href$="#tier-3"], a[href$="targeted-digital/"]');
+      if (t3 && !nav.querySelector('a[href$="#creative"], a[href$="/services/creative/"]')) {
+        var c = document.createElement('a');
+        c.href = '/services/creative/';
+        c.innerHTML = 'Creative<span class="desc">Design, copy, video production</span>';
+        t3.parentNode.insertBefore(c, t3.nextSibling);
+      }
+    }
+    // who-we-serve hub replaces the dead '#' parent link
+    document.querySelectorAll('nav.top li.has-menu > a[href="#"]').forEach(function (a) {
+      if (/^Who We Serve$/.test(a.textContent.trim())) a.setAttribute('href', '/who-we-serve/');
+    });
+    // Partner Login has no destination yet — remove the dead link
+    document.querySelectorAll('footer a[href="#"]').forEach(function (a) {
+      if (/^Partner Login$/.test(a.textContent.trim())) a.remove();
+    });
+    var map = { 'Privacy Policy': 'privacy', 'Terms of Service': 'terms', 'Accessibility Statement': 'accessibility' };
+    document.querySelectorAll('footer a[href="#"]').forEach(function (a) {
+      var to = map[a.textContent.trim()];
+      if (to) a.setAttribute('href', to);
+    });
+  });
+})();

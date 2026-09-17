@@ -191,3 +191,21 @@ RewriteEngine On
 RewriteRule ^onboarding\.html$ /_fourge_gate.php?p=onboarding.html [L,QSA]
 </IfModule>
 # END Fourge Protected Pages
+
+# Performance (Sept 2026 grader pass) — compress text responses.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# Long browser caching for static assets. CSS/JS references carry a ?v=
+# cache-bust query, so long lifetimes are safe; HTML stays revalidated.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
