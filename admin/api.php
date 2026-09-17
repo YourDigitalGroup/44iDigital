@@ -450,7 +450,7 @@ function cmsReadFile($body) {
 
 // ── WRITE FILE ────────────────────────────────────────────────────────────────
 
-// ── BLOG SYNDICATION URL NORMALIZATION ────────────────────────────────────────
+// ── BLOG SYNDICATION URL NORMALIZATION (redeploy touch: Sept 17) ─────────────
 // Partner Fourge sites syndicate this blog via Blog Sync: they copy posts out
 // of data/posts.json wholesale and render them on THEIR domain. A relative
 // featured/image URL ("assets/blog/x.jpg") therefore 404s on every partner
