@@ -27,10 +27,19 @@
 # Redirect the old CMS "Posts" system (data/posts.json + posts.html, never
 # linked from the site nav) to the real, actively-linked /blog section — so
 # any old bookmarks/links to /posts land somewhere real instead of a page
-# nobody maintains. Query strings (posts.html?p=<slug>) are dropped since
-# /blog doesn't use that parameter — the trailing "?" clears it.
+# nobody maintains.
+#
+# posts.html?p=<slug> is ALSO the URL partner Fourge sites point at when they
+# syndicate this blog (Blog Sync sets each copied post's canonical to
+# <source>/posts.html?p=<slug>, and post-list blocks link their cards there).
+# Every posts.json slug has a matching /blog-<slug> page here (the blog editor
+# publishes both from the same save), so send those readers to the real
+# article. A slug with no page 404s at /blog-<slug> — the same dead end the
+# partner shell shows for an unknown slug.
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteCond %{QUERY_STRING} (?:^|&)p=([A-Za-z0-9][A-Za-z0-9-]*)
+  RewriteRule ^posts(\.html)?/?$ https://www.44idigital.com/blog-%1? [R=301,L,NC]
   RewriteCond %{REQUEST_URI} !^/(admin|data)/ [NC]
   RewriteRule ^posts/?$ /blog? [R=301,L,NC]
 </IfModule>

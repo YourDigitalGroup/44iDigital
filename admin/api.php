@@ -195,7 +195,7 @@ if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'posts_normalize'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -256,6 +256,7 @@ try {
         case 'list_media':  ob_end_clean(); cmsListMedia();    break;
         case 'read_file':   ob_end_clean(); cmsReadFile($body); break;
         case 'write_file':  ob_end_clean(); cmsWriteFile($body); break;
+        case 'posts_normalize': ob_end_clean(); cmsApiPostsNormalize(); break;
         case 'upload':      ob_end_clean(); handleUpload();    break;
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
         case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
@@ -449,6 +450,69 @@ function cmsReadFile($body) {
 
 // ── WRITE FILE ────────────────────────────────────────────────────────────────
 
+// ── BLOG SYNDICATION URL NORMALIZATION ────────────────────────────────────────
+// Partner Fourge sites syndicate this blog via Blog Sync: they copy posts out
+// of data/posts.json wholesale and render them on THEIR domain. A relative
+// featured/image URL ("assets/blog/x.jpg") therefore 404s on every partner
+// site, and a bare-domain one ("https://44idigital.com/...") costs readers an
+// extra redirect hop. Normalize every post-local URL to the canonical
+// https://www.44idigital.com origin. Idempotent; foreign hosts are left alone.
+function cmsPostsAbsUrl($u) {
+    $u = trim((string)$u);
+    if ($u === '') return $u;
+    if (preg_match('~^https?://(?:www\.)?44idigital\.com/(.*)$~i', $u, $m)) return 'https://www.44idigital.com/' . $m[1];
+    if (preg_match('~^https?://~i', $u)) return $u;          // another host — not ours to rewrite
+    if (strpos($u, '//') === 0) return 'https:' . $u;
+    if (strpos($u, 'data:') === 0) return $u;
+    return 'https://www.44idigital.com/' . ltrim($u, '/');
+}
+// Takes the raw posts.json text; returns [normalizedText, changedFieldCount].
+// Anything that doesn't parse as a post array passes through untouched.
+function cmsPostsNormalizeJson($raw) {
+    $posts = json_decode((string)$raw, true);
+    if (!is_array($posts)) return [(string)$raw, 0];
+    $changed = 0;
+    foreach ($posts as &$p) {
+        if (!is_array($p)) continue;
+        if (!empty($p['featured'])) {
+            $n = cmsPostsAbsUrl($p['featured']);
+            if ($n !== $p['featured']) { $p['featured'] = $n; $changed++; }
+        }
+        if (!empty($p['blocks']) && is_array($p['blocks'])) {
+            foreach ($p['blocks'] as &$b) {
+                if (!is_array($b)) continue;
+                foreach (['url', 'poster'] as $k) {
+                    // Only media blocks carry site-local files; embed URLs are
+                    // external by nature and must not be rewritten onto our host.
+                    if (($b['type'] ?? '') === 'embed') continue;
+                    if (empty($b[$k]) || !is_string($b[$k])) continue;
+                    $n = cmsPostsAbsUrl($b[$k]);
+                    if ($n !== $b[$k]) { $b[$k] = $n; $changed++; }
+                }
+            }
+            unset($b);
+        }
+    }
+    unset($p);
+    if (!$changed) return [(string)$raw, 0];
+    return [json_encode($posts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), $changed];
+}
+// One-shot (and safely repeatable) cleanup of the live feed. Public on purpose:
+// it takes no input, discloses nothing but counts, and converges to the same
+// result no matter who or what calls it.
+function cmsApiPostsNormalize() {
+    $f = PUBLIC_HTML . '/data/posts.json';
+    if (!is_file($f)) { echo json_encode(['ok' => false, 'error' => 'data/posts.json not found']); return; }
+    $raw = (string)file_get_contents($f);
+    list($out, $changed) = cmsPostsNormalizeJson($raw);
+    if ($changed && file_put_contents($f, $out) === false) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => 'Could not write data/posts.json']);
+        return;
+    }
+    echo json_encode(['ok' => true, 'normalized_urls' => $changed]);
+}
+
 function cmsWriteFile($body) {
     $relPath = $body['path'] ?? ($_POST['path'] ?? '');
     $content = $body['content'] ?? '';
@@ -526,6 +590,12 @@ function cmsWriteFile($body) {
         http_response_code(409);
         echo json_encode(['error' => 'This page is managed in GitHub (YourDigitalGroup/44iDigital) and can\'t be edited from the CMS — publishing it here would overwrite the live design. Make the change through the repo instead.']);
         return;
+    }
+    // Every save of the blog feed keeps its URLs syndication-safe (see
+    // cmsPostsNormalizeJson) — the editor can keep writing relative paths and
+    // partner sites still get absolute ones.
+    if ($relNorm === 'data/posts.json') {
+        list($content, ) = cmsPostsNormalizeJson($content);
     }
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     if (file_put_contents($dest, $content) === false) {
