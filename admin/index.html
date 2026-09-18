@@ -1432,6 +1432,7 @@ textarea.fb-input{resize:vertical}
         <div class="ta" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="fd-btn-primary" onclick="openNewPost()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Post</button>
           <button class="btn btn-o btn-sm" onclick="rebuildBlogListing()" title="Regenerate the /blog page from your posts — newest first"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Update Blog Page</button>
+          <button class="btn btn-o btn-sm" onclick="openPageToPost()" title="Turn an existing page into a blog post — its content becomes editable blocks and it appears on /blog"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg> Convert Page → Post</button>
           <span style="font-size:12px;color:var(--muted)">Publishing a post updates <code style="font-family:var(--font-mono);background:var(--surface-3);padding:2px 6px;border-radius:4px">/blog</code> automatically — newest post on top.</span>
         </div>
         <div id="posts-body"><div class="empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg><h3>No posts yet</h3><p>Click New Post to write your first article.</p></div></div>
@@ -2071,6 +2072,14 @@ textarea.fb-input{resize:vertical}
       <div class="fg"><label>HTML File Name</label><input type="text" id="np-file" placeholder="About.html"></div>
     </div>
     <div class="mf" style="flex-wrap:wrap;gap:8px"><button class="fd-btn-secondary" onclick="closeM('m-newpage')">Cancel</button><button class="fd-btn-secondary" onclick="createNewPage()">Blank HTML</button><button class="fd-btn-primary" onclick="closeM('m-newpage');startPageBuilder()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Build with Blocks</button></div>
+  </div>
+</div>
+
+<!-- Convert pages → posts -->
+<div class="mw" id="m-page2post">
+  <div class="modal" style="width:640px">
+    <div class="mh"><h2>Convert Pages to Posts</h2><button class="ib" onclick="closeM('m-page2post')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="mb" id="page2post-body" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
 <div class="mw" id="m-media-pick">
@@ -4646,6 +4655,185 @@ async function rebuildBlogListing(){
     await regenBlogListing();
     toast('Blog page rebuilt — newest post on top ✓','ok');
   }catch(e){ toast('Rebuild failed: '+e.message,'err'); }
+}
+
+// ── CONVERT PAGES → POSTS ─────────────────────────────────────────
+// A page written as a standalone page (page builder or raw HTML) can be
+// promoted to a real blog post: its content becomes editable post blocks, it
+// gets a blog-<slug>.html article page, and /blog lists it in date order like
+// any other post. Page-builder pages reuse their stored block data directly
+// (same schema as the post editor); raw HTML pages are parsed into blocks,
+// and anything the blocks can't represent survives as an HTML block so
+// nothing is lost. The page's HTML is always read for metadata (title,
+// description, OG image, publish date) even when blocks come from pages.json.
+let _p2pPages=[];
+function pageContentRoot(doc){
+  const src=doc.querySelector('main')||doc.querySelector('article')||doc.body||doc.documentElement;
+  const clone=src.cloneNode(true);
+  clone.querySelectorAll('script,style,noscript,link,meta,header,nav,footer,.grecaptcha-badge,'
+    +'[id*="adaptify" i],[class*="adaptify" i],[class*="wlw" i],[id*="willow" i],.article-top,.read-next,.author-bio').forEach(n=>n.remove());
+  return clone;
+}
+// Walk the content and emit post blocks. The FIRST h1 is captured as the
+// title (the article template renders the title itself); h5/h6 fold to h4
+// because that's the deepest heading the block editor offers.
+function pageContentBlocks(root, meta){
+  const out=[];
+  const push=b=>{ b.id=uid(); out.push(b); };
+  const isYtVm=u=>/youtube\.com|youtu\.be|vimeo\.com/.test(u||'');
+  (function walk(el){
+    [...el.childNodes].forEach(node=>{
+      if(node.nodeType===3){ const t=node.textContent.trim(); if(t) push({type:'paragraph',html:esc(t)}); return; }
+      if(node.nodeType!==1) return;
+      const tag=node.tagName.toLowerCase();
+      if(tag==='h1'){ const t=node.textContent.trim(); if(!meta.h1&&t){ meta.h1=t; } else if(t) push({type:'heading',level:'h2',text:t}); return; }
+      if(/^h[2-6]$/.test(tag)){ const t=node.textContent.trim(); if(t) push({type:'heading',level:(tag==='h5'||tag==='h6')?'h4':tag,text:t}); return; }
+      if(tag==='p'){
+        const img=node.querySelector('img');
+        if(img&&!node.textContent.trim()){ push({type:'image',url:img.getAttribute('src')||'',alt:img.getAttribute('alt')||'',caption:''}); return; }
+        const h=node.innerHTML.trim(); if(h) push({type:'paragraph',html:h}); return;
+      }
+      if(tag==='img'){ push({type:'image',url:node.getAttribute('src')||'',alt:node.getAttribute('alt')||'',caption:''}); return; }
+      if(tag==='figure'){
+        const img=node.querySelector('img');
+        if(img){ push({type:'image',url:img.getAttribute('src')||'',alt:img.getAttribute('alt')||'',caption:(node.querySelector('figcaption')?.textContent||'').trim()}); return; }
+        push({type:'html',html:node.outerHTML}); return;
+      }
+      if(tag==='ul'||tag==='ol'){
+        const items=[...node.children].filter(c=>c.tagName==='LI').map(li=>li.textContent.trim()).filter(Boolean).join('\n');
+        if(items) push({type:'list',ordered:tag==='ol',items}); return;
+      }
+      if(tag==='blockquote'){ push({type:'quote',text:node.textContent.trim(),cite:(node.querySelector('cite')?.textContent||'').trim()}); return; }
+      if(tag==='hr'){ push({type:'divider'}); return; }
+      if(tag==='iframe'){
+        const src=node.getAttribute('src')||'';
+        if(isYtVm(src)) push({type:'embed',url:src}); else push({type:'html',html:node.outerHTML});
+        return;
+      }
+      if(tag==='form'){
+        const fid=node.getAttribute('data-form-id')||node.getAttribute('data-ff-id');
+        if(fid) push({type:'form',formId:fid}); else push({type:'html',html:node.outerHTML});
+        return;
+      }
+      if(tag==='br') return;
+      if(['div','section','article','main','span','center'].includes(tag)){
+        if(node.querySelector('p,h1,h2,h3,h4,h5,h6,img,ul,ol,blockquote,figure,form,iframe')) walk(node);
+        else { const t=node.textContent.trim(); if(t) push({type:'paragraph',html:node.innerHTML.trim()}); }
+        return;
+      }
+      push({type:'html',html:node.outerHTML});   // tables, videos, custom widgets — kept as-is
+    });
+  })(root);
+  return out;
+}
+function pageToPostRecord(html, rec, publish){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const metaC=n=>doc.querySelector('meta[name="'+n+'"]')?.getAttribute('content')||doc.querySelector('meta[property="'+n+'"]')?.getAttribute('content')||'';
+  const meta={h1:''};
+  // Page-builder pages carry the editor's own block data — highest fidelity,
+  // so it wins over re-parsing the rendered HTML.
+  const blocks=(rec.blocks&&rec.blocks.length)
+    ? JSON.parse(JSON.stringify(rec.blocks)).map(b=>(b.id=b.id||uid(),b))
+    : pageContentBlocks(pageContentRoot(doc), meta);
+  if(!meta.h1){ const h1=doc.querySelector('main h1, article h1, h1'); if(h1) meta.h1=h1.textContent.trim(); }
+  const titleTag=(doc.querySelector('title')?.textContent||'').split(/\s*[|–—·]\s*/)[0].trim();
+  const title=meta.h1||metaC('og:title')||titleTag||decodeHtml(rec.title||'')||'Untitled post';
+  const firstImg=blocks.find(b=>b.type==='image'&&b.url);
+  const firstPara=blocks.find(b=>b.type==='paragraph'&&b.html);
+  const tmp=document.createElement('div'); tmp.innerHTML=firstPara?firstPara.html:'';
+  const base=String(rec.file||rec.path||'').split('/').pop().replace(/\.html?$/i,'');
+  const slug=slugify(base.replace(/^blog[-_.]?/i,''))||slugify(title)||('post-'+uid().slice(0,4));
+  return {
+    id:uid(), title, slug,
+    excerpt:(metaC('description')||tmp.textContent.trim()).slice(0,200),
+    author:metaC('author')||'44i Digital',
+    date:(metaC('article:published_time')||'').slice(0,10)||new Date().toISOString().slice(0,10),
+    topic:'Strategy', category:'Blog',
+    featured:metaC('og:image')||(firstImg?firstImg.url:''),
+    readMins:postReadMins(blocks),
+    blocks, published:!!publish
+  };
+}
+async function openPageToPost(){
+  const{url,token}=getApiCfg();
+  if(!url||!token){ toast('Configure Server API in Settings first','err'); return; }
+  if(!Object.keys(_pages).length){ try{ await loadPages(); }catch(e){} }
+  if(!_posts.length){ try{ await initPosts(); }catch(e){} }
+  openM('m-page2post');
+  const body=document.getElementById('page2post-body');
+  const isBlogFile=f=>/^blog([-.]|\.html$)/i.test(String(f).split('/').pop());
+  _p2pPages=Object.entries(_pages)
+    .filter(([id,rec])=>rec&&(rec.file||rec.path)&&!rec.tlp&&!isBlogFile(rec.file||rec.path))
+    .map(([id,rec])=>({id,rec}))
+    .sort((a,b)=>String(a.rec.title||a.rec.file||'').localeCompare(String(b.rec.title||b.rec.file||'')));
+  if(!_p2pPages.length){ body.innerHTML='<div class="empty" style="padding:24px"><h3>No convertible pages</h3><p>City landing pages and existing blog pages are excluded automatically.</p></div>'; return; }
+  const slugTaken=new Set(_posts.map(p=>p.slug));
+  body.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Tick the pages that should become blog posts. Each page’s content becomes an editable post (headings, text, images, lists…); anything the blocks can’t represent is kept as-is. Publishing puts the post on <b>/blog</b>, newest first.</div>'
+    +'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px">'
+      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="p2p-publish" checked> Publish immediately</label>'
+      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="p2p-remove"> Delete the original pages afterwards</label>'
+    +'</div>'
+    +_p2pPages.map((x,i)=>{
+      const base=String(x.rec.file||x.rec.path||'').split('/').pop();
+      const guess=slugify(base.replace(/\.html?$/i,'').replace(/^blog[-_.]?/i,''));
+      const dupe=guess&&slugTaken.has(guess);
+      return '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer">'
+        +'<input type="checkbox" id="p2p-chk-'+i+'">'
+        +'<span style="flex:1;min-width:0"><span style="font-size:13px;font-weight:600">'+esc(decodeHtml(x.rec.title||base))+'</span>'
+        +'<span style="display:block;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(x.rec.path||x.rec.file||'')
+        +(x.rec.blocks&&x.rec.blocks.length?' · page-builder blocks reused directly':'')
+        +(dupe?' · a post with this address exists (a suffix will be added)':'')+'</span></span>'
+      +'</label>';
+    }).join('')
+    +'<div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="fd-btn-primary" id="p2p-go" onclick="convertPagesToPosts()">Convert selected →</button></div>';
+}
+async function convertPagesToPosts(){
+  const sel=_p2pPages.map((x,i)=>({x,i})).filter(s=>document.getElementById('p2p-chk-'+s.i)?.checked);
+  if(!sel.length){ toast('Tick at least one page first','err'); return; }
+  const publish=document.getElementById('p2p-publish')?.checked!==false;
+  const removeOrig=document.getElementById('p2p-remove')?.checked===true;
+  if(removeOrig&&!confirm('Also DELETE the '+sel.length+' original page file'+(sel.length===1?'':'s')+' from the site? Their old addresses will stop working (each post gets a new /blog-… address). This can’t be undone.'))return;
+  const btn=document.getElementById('p2p-go'); if(btn){ btn.disabled=true; btn.textContent='Converting…'; }
+  let done=0, failed=0, removed=0; const published=[];
+  try{
+    for(const{x}of sel){
+      const fp=x.rec.path||x.rec.file; if(!fp){ failed++; continue; }
+      try{
+        const d=await apiCall('read_file',{path:fp});
+        if(!d.content){ failed++; continue; }
+        const post=pageToPostRecord(d.content, x.rec, publish);
+        if(_posts.some(p=>p.slug===post.slug)) post.slug=post.slug+'-'+post.id.slice(0,4);
+        _posts.unshift(post); done++;
+        if(post.published) published.push(post);
+        if(removeOrig){
+          // Repo-managed pages come back 409 from the server — the page is
+          // converted either way, only the original stays where it was.
+          try{ await apiCall('delete_file',{path:fp}); delete _pages[x.id]; removed++; }
+          catch(e){ toast(esc(decodeHtml(x.rec.title||fp))+': original kept ('+(e.message||'server refused the delete')+')','err'); }
+        }
+      }catch(e){ failed++; console.warn('convert failed for '+fp, e&&e.message); }
+    }
+    if(done){
+      await savePostsJson();
+      for(const post of published){
+        await apiCall('write_file',{path:'blog-'+post.slug+'.html',content:buildArticleHtml(post)});
+        // Register the article page so the sitemap regenerates with it, the
+        // same way the site's existing blog pages are listed in pages.json.
+        _pages['blog-'+post.slug]={title:decodeHtml(post.title)+' | 44i Digital Blog',file:'blog-'+post.slug+'.html',path:'blog-'+post.slug+'.html'};
+      }
+      if(published.length) await regenBlogListing();
+      if(published.length||removed){ try{ await savePagesJson(); await updateSitemap(); }catch(e){} }
+    }
+  }catch(e){ toast('Conversion failed: '+e.message,'err'); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='Convert selected →'; } }
+  closeM('m-page2post');
+  renderPosts();
+  goPanel('p-posts');
+  toast(done?('Converted '+done+' page'+(done===1?'':'s')+' to blog posts'
+      +(published.length?' — live on /blog, newest first':' (saved as drafts)')
+      +(removed?(' · deleted '+removed+' original'+(removed===1?'':'s')):'')
+      +(failed?(' · '+failed+' failed'):'')+' ✓')
+    :('Nothing converted'+(failed?(' — '+failed+' failed'):'')), done?'ok':'err');
 }
 
 // ── BLOCK → HTML (generic, used by the page builder) ──────────────
