@@ -195,7 +195,7 @@ if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'posts_normalize'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'posts_normalize', 'blog_reindex'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -257,6 +257,7 @@ try {
         case 'read_file':   ob_end_clean(); cmsReadFile($body); break;
         case 'write_file':  ob_end_clean(); cmsWriteFile($body); break;
         case 'posts_normalize': ob_end_clean(); cmsApiPostsNormalize(); break;
+        case 'blog_reindex': ob_end_clean(); cmsApiBlogReindex(); break;
         case 'upload':      ob_end_clean(); handleUpload();    break;
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
         case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
@@ -513,6 +514,215 @@ function cmsApiPostsNormalize() {
     echo json_encode(['ok' => true, 'normalized_urls' => $changed]);
 }
 
+// ── BLOG FEED SELF-HEAL ───────────────────────────────────────────────────────
+// data/posts.json is the single source of truth for the /blog listing and the
+// partner syndication feed, but each published article ALSO exists as its own
+// static blog-<slug>.html page. Those two can drift: on Sept 1 2026 a deploy
+// shipped a repo copy of posts.json that predated an article published the
+// evening before, so the article page stayed live while its feed entry — and
+// its card on /blog — vanished. A stale admin tab saving its whole in-memory
+// post list can do the same thing.
+//
+// blog_reindex walks every blog-*.html on the server, rebuilds a feed entry
+// for any slug the feed is missing (title, author, date, category, excerpt,
+// featured image and body blocks all come from the article page itself), and
+// regenerates the /blog card list newest-first. Public on purpose: it takes
+// no input, only ever ADDS entries that the server's own files prove exist,
+// never removes or overwrites one, and a second run is a no-op.
+function cmsUid7() {
+    $chars = '0123456789abcdefghijklmnopqrstuvwxyz'; $s = '';
+    for ($i = 0; $i < 7; $i++) $s .= $chars[random_int(0, 35)];
+    return $s;
+}
+// Mirror of PE_TOPIC_LABELS in admin/index.html (topic key => card label).
+function cmsBlogTopicLabels() {
+    return ['SEO' => 'SEO & Search', 'Social' => 'Social Media', 'Targeted Display' => 'Targeted Display',
+            'Strategy' => 'Strategy', 'Web' => 'Web & Compliance', 'Data' => 'Data & Insights'];
+}
+function cmsBlogTopicFromCategory($category, $posts) {
+    $cat = trim(html_entity_decode((string)$category, ENT_QUOTES, 'UTF-8'));
+    foreach (cmsBlogTopicLabels() as $k => $label) if (strcasecmp($label, $cat) === 0 || strcasecmp($k, $cat) === 0) return $k;
+    foreach ($posts as $p) if (is_array($p) && strcasecmp((string)($p['category'] ?? ''), $cat) === 0 && !empty($p['topic'])) return $p['topic'];
+    return 'Strategy';
+}
+function cmsBlogFmtDateLong($iso) {
+    $t = strtotime((string)$iso . ' 12:00:00');
+    return $t ? date('F j, Y', $t) : (string)$iso;
+}
+// JS esc(): & < > " only — single quotes are left alone.
+function cmsBlogEsc($s) { return htmlspecialchars(html_entity_decode((string)$s, ENT_QUOTES, 'UTF-8'), ENT_COMPAT, 'UTF-8'); }
+function cmsDomInnerHtml(DOMNode $n) {
+    $h = '';
+    foreach ($n->childNodes as $c) $h .= $n->ownerDocument->saveHTML($c);
+    return trim($h);
+}
+// Reverse of buildArticleHtml(): read a published article page back into the
+// post record the editor would have saved. Returns null when the page isn't
+// one of ours (no article-body), so a stray blog-*.html can't invent a post.
+function cmsBlogPostFromArticleHtml($html, $slug, $posts) {
+    if (strpos($html, 'class="article-body"') === false) return null;
+    $doc = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+    libxml_clear_errors();
+    $xp = new DOMXPath($doc);
+    $txt = function ($q) use ($xp) { $n = $xp->query($q)->item(0); return $n ? trim($n->textContent) : ''; };
+    $attr = function ($q) use ($xp) { $n = $xp->query($q)->item(0); return $n ? trim($n->nodeValue) : ''; };
+    $title = $txt('//h1');
+    if ($title === '') return null;
+    $category = $txt('//*[contains(concat(" ",normalize-space(@class)," ")," article-cat ")]');
+    $author   = $txt('//*[contains(concat(" ",normalize-space(@class)," ")," article-author ")]//*[contains(concat(" ",normalize-space(@class)," ")," who ")]');
+    $excerpt  = $attr('//meta[@name="description"]/@content');
+    $featured = $attr('//img[contains(concat(" ",normalize-space(@class)," ")," article-photo ")]/@src');
+    $date = ''; $mins = 0;
+    foreach ($xp->query('//script[@type="application/ld+json"]') as $ld) {
+        if (preg_match('~"datePublished"\s*:\s*"(\d{4}-\d{2}-\d{2})~', $ld->textContent, $m)) { $date = $m[1]; break; }
+    }
+    foreach ($xp->query('//*[contains(concat(" ",normalize-space(@class)," ")," abyline ")]/span') as $sp) {
+        $v = trim($sp->textContent);
+        if (preg_match('~^(\d+)\s*min$~', $v, $m)) $mins = (int)$m[1];
+        elseif ($date === '' && ($t = strtotime($v)) !== false && preg_match('~\d{4}~', $v)) $date = date('Y-m-d', $t);
+    }
+    if ($date === '') $date = date('Y-m-d');
+    $blocks = []; $words = 0;
+    $body = $xp->query('//div[contains(concat(" ",normalize-space(@class)," ")," article-body ")]')->item(0);
+    foreach ($body ? iterator_to_array($body->childNodes) : [] as $n) {
+        if ($n->nodeType === XML_TEXT_NODE) { $t = trim($n->textContent); if ($t !== '') $blocks[] = ['type' => 'paragraph', 'html' => cmsBlogEsc($t)]; continue; }
+        if ($n->nodeType !== XML_ELEMENT_NODE) continue;
+        $tag = strtolower($n->tagName); $cls = ' ' . ($n->getAttribute('class') ?? '') . ' ';
+        $words += count(preg_split('~\s+~', trim($n->textContent), -1, PREG_SPLIT_NO_EMPTY));
+        if ($tag === 'p')                       $blocks[] = ['type' => 'paragraph', 'html' => cmsDomInnerHtml($n)];
+        elseif (preg_match('~^h[2-6]$~', $tag)) $blocks[] = ['type' => 'heading', 'level' => in_array($tag, ['h5','h6']) ? 'h4' : $tag, 'text' => trim($n->textContent)];
+        elseif ($tag === 'ul' || $tag === 'ol') {
+            $items = [];
+            foreach ($n->childNodes as $li) if ($li->nodeType === XML_ELEMENT_NODE && strtolower($li->tagName) === 'li') $items[] = trim($li->textContent);
+            $blocks[] = ['type' => 'list', 'ordered' => $tag === 'ol', 'items' => implode("\n", array_filter($items, 'strlen'))];
+        }
+        elseif ($tag === 'figure') {
+            $img = $xp->query('.//img', $n)->item(0); $cap = $xp->query('.//figcaption', $n)->item(0);
+            if ($img) $blocks[] = ['type' => 'image', 'url' => $img->getAttribute('src'), 'alt' => $img->getAttribute('alt'), 'caption' => $cap ? trim($cap->textContent) : ''];
+            else $blocks[] = ['type' => 'html', 'html' => $doc->saveHTML($n)];
+        }
+        elseif ($tag === 'div' && strpos($cls, ' callout ') !== false) {
+            $who = $xp->query('.//*[contains(concat(" ",normalize-space(@class)," ")," who ")]', $n)->item(0);
+            $cite = $who ? trim($who->textContent) : '';
+            if ($who) $who->parentNode->removeChild($who);
+            $blocks[] = ['type' => 'quote', 'text' => trim($n->textContent), 'cite' => $cite];
+        }
+        elseif ($tag === 'div' && strpos($cls, ' embed ') !== false) {
+            $if = $xp->query('.//iframe', $n)->item(0);
+            $blocks[] = $if ? ['type' => 'embed', 'url' => $if->getAttribute('src')] : ['type' => 'html', 'html' => $doc->saveHTML($n)];
+        }
+        elseif ($tag === 'hr') $blocks[] = ['type' => 'divider'];
+        else $blocks[] = ['type' => 'html', 'html' => $doc->saveHTML($n)];
+    }
+    if (!$blocks) return null;
+    foreach ($blocks as &$b) $b = ['id' => cmsUid7()] + $b;
+    unset($b);
+    return [
+        'id' => cmsUid7(), 'title' => $title, 'slug' => $slug,
+        'excerpt' => $excerpt, 'author' => $author !== '' ? $author : '44i Digital', 'date' => $date,
+        'topic' => cmsBlogTopicFromCategory($category, $posts), 'category' => $category !== '' ? $category : 'Blog',
+        'featured' => html_entity_decode($featured, ENT_QUOTES, 'UTF-8'),
+        'readMins' => $mins > 0 ? $mins : max(1, (int)round($words / 225)),
+        'blocks' => $blocks, 'published' => true,
+        'recoveredFrom' => 'blog-' . $slug . '.html',
+    ];
+}
+function cmsBlogPublishedSorted($posts) {
+    $pub = array_values(array_filter($posts, fn($p) => is_array($p) && !empty($p['published'])));
+    usort($pub, fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')));
+    return $pub;
+}
+// Byte-for-byte mirror of buildBlogCards() in admin/index.html.
+function cmsBlogCardsHtml($posts) {
+    $out = '';
+    foreach (cmsBlogPublishedSorted($posts) as $i => $p) {
+        $mins = (int)($p['readMins'] ?? 0) ?: 1;
+        $out .= '<a class="blog-card' . ($i < 2 ? ' feature' : '') . '" href="blog-' . cmsBlogEsc($p['slug'] ?? '') . '" data-topic="' . cmsBlogEsc($p['topic'] ?? 'Strategy') . '" data-read="' . ($mins < 4 ? 'short' : 'long') . '" data-date="' . cmsBlogEsc($p['date'] ?? '') . '">' . "\n"
+            . '<div class="blog-card-media"><img class="bcard-thumb" src="' . cmsBlogEsc($p['featured'] ?? '') . '" alt="" loading="lazy"></div>' . "\n"
+            . '<div class="blog-card-body">' . "\n"
+            . '<span class="blog-cat">' . cmsBlogEsc($p['category'] ?? ($p['topic'] ?? 'Blog')) . '</span>' . "\n"
+            . '<h3>' . cmsBlogEsc($p['title'] ?? '') . '</h3>' . "\n"
+            . (!empty($p['excerpt']) ? '<p>' . cmsBlogEsc($p['excerpt']) . '</p>' . "\n" : '')
+            . '<div class="blog-meta"><span>Blog</span><span class="dot"></span><span>' . $mins . ' min</span><span class="dot"></span><span>' . cmsBlogFmtDateLong($p['date'] ?? '') . '</span></div>' . "\n"
+            . '</div>' . "\n" . '</a>';
+    }
+    return $out;
+}
+function cmsBlogTopicOptionsHtml($posts) {
+    $labels = cmsBlogTopicLabels(); $topics = [];
+    foreach (cmsBlogPublishedSorted($posts) as $p) {
+        $t = (string)($p['topic'] ?? ''); if ($t === '' || isset($topics[$t])) continue;
+        $topics[$t] = $labels[$t] ?? html_entity_decode((string)($p['category'] ?? $t), ENT_QUOTES, 'UTF-8');
+    }
+    $o = '<option value="">All Topics</option>';
+    foreach ($topics as $k => $label) $o .= '<option value="' . cmsBlogEsc($k) . '">' . cmsBlogEsc($label) . '</option>';
+    return $o;
+}
+// Same splice regenBlogListing() performs in the admin. Returns true when the
+// listing on disk changed.
+function cmsBlogRegenListing($posts) {
+    $f = PUBLIC_HTML . '/blog.html';
+    if (!is_file($f)) return false;
+    $src = (string)file_get_contents($f); $orig = $src;
+    $cards = "<!-- fourge-blog-cards:start -->\n" . cmsBlogCardsHtml($posts) . "\n<!-- fourge-blog-cards:end -->";
+    if (strpos($src, 'fourge-blog-cards:start') !== false) {
+        $src = preg_replace('~<!-- fourge-blog-cards:start -->[\s\S]*?<!-- fourge-blog-cards:end -->~', $cards, $src, 1);
+    } else {
+        $src = preg_replace('~(<div class="blog-grid" id="blog-grid">)[\s\S]*?(<div class="blog-empty")~', '$1' . "\n" . $cards . "\n" . '$2', $src, 1);
+    }
+    $src = preg_replace('~(<select id="filter-topic"[^>]*>)[\s\S]*?(</select>)~', '$1' . cmsBlogTopicOptionsHtml($posts) . '$2', $src, 1);
+    if ($src === null || $src === $orig) return false;
+    return file_put_contents($f, $src) !== false;
+}
+function cmsApiBlogReindex() {
+    $pf = PUBLIC_HTML . '/data/posts.json';
+    $posts = is_file($pf) ? json_decode((string)file_get_contents($pf), true) : [];
+    if (!is_array($posts)) { echo json_encode(['ok' => false, 'error' => 'data/posts.json is not a post array']); return; }
+    $known = [];
+    foreach ($posts as $p) if (is_array($p) && !empty($p['slug'])) $known[strtolower($p['slug'])] = true;
+    $added = []; $skipped = [];
+    foreach (glob(PUBLIC_HTML . '/blog-*.html') ?: [] as $file) {
+        if (!preg_match('~^blog-([a-z0-9][a-z0-9-]*)\.html$~i', basename($file), $m)) continue;
+        $slug = $m[1];
+        if (isset($known[strtolower($slug)])) continue;
+        $post = cmsBlogPostFromArticleHtml((string)file_get_contents($file), $slug, $posts);
+        if ($post === null) { $skipped[] = $slug; continue; }
+        array_unshift($posts, $post); $known[strtolower($slug)] = true; $added[] = $slug;
+    }
+    $listing = false;
+    if ($added) {
+        list($json, ) = cmsPostsNormalizeJson(json_encode($posts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if (file_put_contents($pf, $json) === false) { http_response_code(500); echo json_encode(['ok' => false, 'error' => 'Could not write data/posts.json']); return; }
+        $posts = json_decode($json, true) ?: $posts;
+    }
+    $listing = cmsBlogRegenListing($posts);
+    echo json_encode(['ok' => true, 'added' => $added, 'skipped_not_articles' => $skipped, 'posts' => count($posts), 'listing_regenerated' => $listing]);
+}
+// Lost-update guard for the feed: an admin tab that loaded the post list
+// before a colleague published (or before a reindex above) saves its whole
+// stale array back and silently erases the newer post. Anything on disk that
+// the incoming save doesn't know about is kept — unless the save names it in
+// deleted_ids, which is how a deliberate delete says so.
+function cmsPostsMergeGuard($existingRaw, $incomingRaw, $deletedIds) {
+    $existing = json_decode((string)$existingRaw, true);
+    $incoming = json_decode((string)$incomingRaw, true);
+    if (!is_array($existing) || !is_array($incoming)) return (string)$incomingRaw;
+    $have = []; $deleted = [];
+    foreach ($incoming as $p) if (is_array($p) && !empty($p['id'])) $have[(string)$p['id']] = true;
+    foreach ((array)$deletedIds as $d) if (is_scalar($d)) $deleted[(string)$d] = true;
+    $kept = 0;
+    foreach ($existing as $p) {
+        if (!is_array($p) || empty($p['id'])) continue;
+        $id = (string)$p['id'];
+        if (isset($have[$id]) || isset($deleted[$id])) continue;
+        $incoming[] = $p; $kept++;
+    }
+    if (!$kept) return (string)$incomingRaw;
+    return json_encode($incoming, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+}
+
 function cmsWriteFile($body) {
     $relPath = $body['path'] ?? ($_POST['path'] ?? '');
     $content = $body['content'] ?? '';
@@ -595,6 +805,7 @@ function cmsWriteFile($body) {
     // cmsPostsNormalizeJson) — the editor can keep writing relative paths and
     // partner sites still get absolute ones.
     if ($relNorm === 'data/posts.json') {
+        $content = cmsPostsMergeGuard(is_file($dest) ? (string)file_get_contents($dest) : '', $content, $body['deleted_ids'] ?? []);
         list($content, ) = cmsPostsNormalizeJson($content);
     }
     if (!is_dir($dir)) mkdir($dir, 0755, true);

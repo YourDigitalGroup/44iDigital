@@ -10,6 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # data/*.json is owned by the live CMS (posts, pages, users, SEO, site
+      # settings). The repo copies are stale snapshots, and a changed snapshot
+      # gets uploaded over the live file: on 2026-09-01 that erased a blog post
+      # published the evening before. Refuse to deploy any push that touches
+      # them — change the live data through the CMS instead.
+      - name: Refuse to overwrite live CMS data
+        run: |
+          BASE="${{ github.event.before }}"
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=$(git rev-parse HEAD~1); fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD -- 'data/*.json' 'data/**/*.json' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "::error::This push changes live CMS data files, which would overwrite the server copies:"
+            echo "$CHANGED"
+            exit 1
+          fi
       - uses: SamKirkland/FTP-Deploy-Action@4.3.2
         with:
           server: ${{ secrets.FTP_SERVER }}

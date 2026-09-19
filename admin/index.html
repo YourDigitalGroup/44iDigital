@@ -4019,10 +4019,13 @@ let _curPost=null;       // index of post being edited, or null for new
 let _postBlocks=[];      // working block array in the editor
 let _postImgCb=null;     // callback for the post image picker
 
-async function savePostsJson(){
+// deletedIds: the server keeps any post on disk this tab doesn't know about
+// (another tab or a reindex may have added it) unless it's named here — so a
+// stale post list can never silently erase a newer post.
+async function savePostsJson(deletedIds){
   const json=JSON.stringify(_posts,null,2);
   const{url,token}=getApiCfg();
-  if(url&&token){ await apiCall('write_file',{path:F_POSTS,content:json}); return; }
+  if(url&&token){ await apiCall('write_file',{path:F_POSTS,content:json,deleted_ids:deletedIds||[]}); return; }
   const sha=await ghSHA(F_POSTS);
   await ghWrite(F_POSTS,json,sha,'CMS: posts update');
 }
@@ -4639,7 +4642,7 @@ async function deletePostAt(i){
   if(!confirm('Delete "'+decodeHtml(p.title||'Untitled')+'"?'+(p.published?' Its page will be removed from the blog too.':'')))return;
   _posts.splice(i,1);
   try{
-    await savePostsJson();
+    await savePostsJson(p.id?[p.id]:[]);
     if(p.published){
       try{ await apiCall('delete_file',{path:'blog-'+p.slug+'.html'}); }catch(e){}
       await regenBlogListing();
