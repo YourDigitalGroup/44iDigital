@@ -12,6 +12,24 @@ This is the base template for all Fourge sites. Every new client site is created
    - `FTP_SERVER_DIR`
 3. Push any commit → site deploys automatically
 
+## Live CMS data — do not edit `data/*.json` in this repo
+
+The files under `data/` (posts, pages, users, SEO, site settings) are **owned by
+the live CMS on the server**. The copies in this repo are stale snapshots kept
+only because the FTP deploy tracks them; they are not the source of truth.
+
+If a commit changes one of them, the deploy uploads it **over the live file**.
+That happened on 2026-09-01: a refreshed `data/posts.json` snapshot erased a blog
+post published the evening before (its article page survived; its feed entry and
+`/blog` card did not). The deploy workflow now refuses any push that touches
+`data/*.json`. Make content changes through the CMS instead.
+
+Recovery tools in `admin/api.php` (both public, input-free, idempotent):
+`posts_normalize` (absolute, canonical media URLs in the feed) and
+`blog_reindex` (rebuilds feed entries for any `blog-<slug>.html` the feed is
+missing and regenerates `/blog`). Call with a JSON POST body
+`{"action":"blog_reindex"}`.
+
 ## File structure
 
 ```
