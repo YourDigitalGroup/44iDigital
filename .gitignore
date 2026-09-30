@@ -3,6 +3,7 @@
 # config.secret.php and fill in your keys. Ignore EVERY config.secret.*
 # variant (e.g. a mistyped config.secret.api) except the example template.
 admin/config.secret.php
+admin/gate.pepper.secret.php
 admin/config.secret.*
 !admin/config.secret.example.php
 

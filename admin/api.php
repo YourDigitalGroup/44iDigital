@@ -792,7 +792,7 @@ function cmsWriteFile($body) {
     // (blog.html, blog-*.html, data/posts.json) stay CMS-managed on purpose.
     $repoManaged = ['index.html','why-44i.html','book-a-demo.html','onboarding.html','glossary.html',
         'privacy.html','terms.html','accessibility.html','who-we-serve.html','nav.js','willow.js',
-        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php'];
+        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php','admin/gate_token.php'];
     $repoPrefixes = ['services/','program/','who-we-serve/','stories/','assets/og/'];
     $isRepoManaged = in_array($relNorm, $repoManaged, true);
     foreach ($repoPrefixes as $pref) { if (strpos($relNorm, $pref) === 0) $isRepoManaged = true; }
@@ -2148,10 +2148,16 @@ function cmsOnboardingUpload() {
     session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $secure]);
     session_name('fourge_gate');
     session_start();
-    if (empty($_SESSION['fourge_unlocked']['onboarding.html'])) {
+    // The signed 30-day unlock cookie is the primary proof (see gate_token.php);
+    // the session is only a fallback, since it expires after minutes of idling.
+    require_once __DIR__ . '/gate_token.php';
+    $gateMap = is_file(fourgeProtectStorePath()) ? (include fourgeProtectStorePath()) : [];
+    if (!is_array($gateMap)) $gateMap = [];
+    if (!fourgeGateVerify($gateMap, 'onboarding.html') && empty($_SESSION['fourge_unlocked']['onboarding.html'])) {
         http_response_code(403);
         echo json_encode(['error' => 'Please unlock the onboarding page first.']); return;
     }
+    fourgeGateIssue($gateMap, 'onboarding.html');   // renew: the form can take a while
 
     // Check the PHP-reported error FIRST: a file over upload_max_filesize
     // arrives with error=UPLOAD_ERR_INI_SIZE and an empty tmp_name, so an
@@ -2245,6 +2251,11 @@ function fourgeSaveProtectMap($map) {
     return file_put_contents(fourgeProtectStorePath(), $out) !== false;
 }
 function fourgeWriteGateFile() {
+    // This site's gate is customized (branded, cookie-based unlock via
+    // admin/gate_token.php) and ships from GitHub. Regenerating it from the
+    // generic template would drop both, so leave it alone.
+    $cur = PUBLIC_HTML . '/_fourge_gate.php';
+    if (is_file($cur) && strpos((string)file_get_contents($cur), 'gate_token.php') !== false) return true;
     $src = <<<'GATE'
 <?php
 // Fourge page gate — protects the pages listed in admin/protect.secret.php.
