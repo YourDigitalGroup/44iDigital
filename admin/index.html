@@ -3442,15 +3442,19 @@ async function viewEntries(formId){
   if(!rows.length){ body.innerHTML='<div class="empty"><h3>No submissions yet</h3><p>Entries will appear here when visitors submit this form.</p></div>'; return; }
   const cols=entryColumns(rows);
   const thead='<tr><th style="white-space:nowrap">Date</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>';
+  const drafts=rows.filter(e=>e.status==='draft').length;
   const tbody=rows.map(e=>{
     const d=e.data||{};
-    return '<tr><td style="white-space:nowrap;color:var(--muted);font-size:12px">'+esc(e.date||'')+'</td>'
+    // Autosaved while the visitor typed (see form_draft in api.php): the form
+    // was never submitted, but every answer entered so far is here.
+    const badge=e.status==='draft'?'<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:rgba(245,158,11,.14);color:#b45309;margin-right:6px;vertical-align:1px" title="Not submitted — autosaved as the visitor typed'+(e.started?' (started '+esc(e.started)+')':'')+'">In progress</span>':'';
+    return '<tr'+(e.status==='draft'?' style="background:rgba(245,158,11,.05)"':'')+'><td style="white-space:nowrap;color:var(--muted);font-size:12px">'+badge+esc(e.date||'')+'</td>'
       +cols.map(c=>'<td style="font-size:13px">'+esc(d[c]!=null?String(d[c]):'')+'</td>').join('')
       +'</tr>';
   }).join('');
   body.innerHTML=''
     +'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
-      +'<div style="font-size:13px;color:var(--muted)">'+rows.length+' submission'+(rows.length===1?'':'s')+' · newest first</div>'
+      +'<div style="font-size:13px;color:var(--muted)">'+(rows.length-drafts)+' submission'+((rows.length-drafts)===1?'':'s')+(drafts?' · <b style="color:#b45309">'+drafts+' in progress</b> (autosaved, not yet submitted)':'')+' · newest first</div>'
       +'<button class="btn btn-o btn-sm" onclick="exportEntriesCsv()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV</button>'
     +'</div>'
     +'<div style="overflow:auto"><table class="dt"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';

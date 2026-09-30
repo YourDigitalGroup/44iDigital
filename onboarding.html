@@ -473,13 +473,8 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
       });
   }
 
-  /* ── submit ── */
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!validatePage(3)) return;
-    var submitBtn = document.getElementById('ob-submit');
-    submitBtn.disabled = true;
-
+  /* ── field collection (shared by autosave and submit) ── */
+  function collectFields() {
     var fields = {};
     Array.prototype.forEach.call(form.querySelectorAll('[data-save]'), function (el) {
       var label = el.getAttribute('data-save');
@@ -498,6 +493,61 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
       return document.getElementById(id).value.trim();
     }).filter(Boolean).join(', ');
     fields['Mailing Address'] = addr;
+    return fields;
+  }
+
+  /* ── draft autosave ──
+     Every answer is mirrored to the server as it is typed, so the team still
+     has the information if the final submit never lands (expired unlock,
+     oversized upload, dropped connection). The entry starts the moment any
+     field has a value; keystrokes are coalesced to one request per 400 ms and
+     the latest state always wins. The draft id lives in localStorage so a
+     reload keeps updating the same entry instead of starting a second one. */
+  var DRAFT_KEY = 'ob-draft-id';
+  var draftId = '';
+  try { draftId = localStorage.getItem(DRAFT_KEY) || ''; } catch (e) {}
+  if (!/^[a-z0-9]{8,32}$/.test(draftId)) {
+    draftId = (Math.random().toString(36).slice(2, 10) + Date.now().toString(36)).slice(0, 32);
+    try { localStorage.setItem(DRAFT_KEY, draftId); } catch (e) {}
+  }
+  var draftTimer = null, draftDirty = false, draftLast = '', draftDone = false;
+  function hasAnyValue(fields) {
+    return Object.keys(fields).some(function (k) { return String(fields[k] || '').trim() !== ''; });
+  }
+  function pushDraft(fieldsOverride, keepalive) {
+    var fields = fieldsOverride || collectFields();
+    if (!hasAnyValue(fields)) return Promise.resolve();
+    var body = JSON.stringify({ action: 'form_draft', formId: 'whitelabel-onboarding', draftId: draftId, fields: fields, siteUrl: location.href });
+    if (body === draftLast) return Promise.resolve();
+    draftLast = body;
+    var opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body };
+    if (keepalive) opts.keepalive = true;
+    return fetch(API, opts).catch(function () {});
+  }
+  function scheduleDraft() {
+    if (draftDone) return;
+    draftDirty = true;
+    if (draftTimer) return;
+    draftTimer = setTimeout(function () {
+      draftTimer = null; draftDirty = false;
+      pushDraft().then(function () { if (draftDirty && !draftDone) scheduleDraft(); });
+    }, 400);
+  }
+  form.addEventListener('input', scheduleDraft);
+  form.addEventListener('change', scheduleDraft);
+  function flushDraft() { if (draftDone) return; draftLast = ''; pushDraft(null, true); }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushDraft(); });
+  window.addEventListener('pagehide', flushDraft);
+
+  /* ── submit ── */
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!validatePage(3)) return;
+    var submitBtn = document.getElementById('ob-submit');
+    submitBtn.disabled = true;
+
+    var fields = collectFields();
+    draftDone = true;   // no autosaves racing the submit
 
     var logoInput = document.getElementById('ob-logo-file');
     var stationInput = document.getElementById('ob-station-logos');
@@ -520,6 +570,12 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
 
     Promise.all(uploads)
       .then(function () {
+        // Uploaded file URLs reach the draft too, so even a failed send leaves
+        // the team with the logos.
+        draftLast = '';
+        return pushDraft(fields, false);
+      })
+      .then(function () {
         submitBtn.textContent = 'Sending…';
         return fetch(API, {
           method: 'POST',
@@ -527,6 +583,7 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
           body: JSON.stringify({
             action: 'send_form',
             formId: 'whitelabel-onboarding',
+            draftId: draftId,
             fields: fields,
             recaptcha: '',
             subject: 'New submission from White Label Onboarding',
@@ -540,12 +597,14 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
       .then(function (d) {
         if (d.error) throw new Error(d.error);
         setMsg('ok', 'Thanks for contacting us! We will get in touch with you shortly.');
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e2) {}
         form.style.display = 'none';
         document.querySelector('.ob-progress').style.display = 'none';
         document.querySelector('.ob-form-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
       })
       .catch(function (err) {
         setMsg('err', 'Something went wrong: ' + err.message);
+        draftDone = false;   // keep autosaving while they retry
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit information';
       });
