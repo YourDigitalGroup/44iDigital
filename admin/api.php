@@ -195,7 +195,7 @@ if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'posts_normalize', 'blog_reindex'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'form_draft', 'posts_normalize', 'blog_reindex'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -263,6 +263,7 @@ try {
         case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
         case 'onboarding_upload': ob_end_clean(); cmsOnboardingUpload(); break;
+        case 'form_draft': ob_end_clean(); cmsApiFormDraft($body); break;
         case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
         case 'ga_status':   ob_end_clean(); gaStatus();          break;
@@ -1053,6 +1054,73 @@ function cmsStoreEntry($formId, $fields, $siteUrl) {
     } catch (Exception $e) { /* non-fatal */ }
 }
 
+// ── FORM DRAFTS (autosaved while the visitor types) ──────────────────────────
+// The onboarding form is long, and four partners have now lost their answers
+// at the submit step (expired unlock, oversized upload, dropped connection).
+// Every answer is mirrored into data/entries.json as it is typed — a 'draft'
+// entry keyed by a client-generated draft id — so the team has the
+// information even when the final submit never lands. A successful send_form
+// carrying the same draft id replaces the draft with the real submission.
+// entries.json is blocked from public HTTP by data/.htaccess (visitor PII).
+function cmsEntriesPath() { return __DIR__ . '/../data/entries.json'; }
+// Locked read-modify-write, so a burst of keystroke saves (or a save racing a
+// submit) can never interleave and corrupt the file.
+function cmsEntriesUpdate(callable $fn) {
+    $file = cmsEntriesPath(); $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $fh = @fopen($file, 'c+');
+    if (!$fh) return false;
+    if (!flock($fh, LOCK_EX)) { fclose($fh); return false; }
+    $raw = stream_get_contents($fh);
+    $entries = json_decode($raw === '' ? '[]' : $raw, true);
+    if (!is_array($entries)) $entries = [];
+    $entries = array_values($fn($entries));
+    if (count($entries) > 1000) $entries = array_slice($entries, 0, 1000);
+    ftruncate($fh, 0); rewind($fh);
+    fwrite($fh, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)); fflush($fh);
+    flock($fh, LOCK_UN); fclose($fh);
+    return true;
+}
+function cmsApiFormDraft($body) {
+    $formId  = (string)($body['formId'] ?? '');
+    $draftId = (string)($body['draftId'] ?? '');
+    $fields  = $body['fields'] ?? null;
+    if ($formId !== 'whitelabel-onboarding') { http_response_code(400); echo json_encode(['error' => 'Drafts are not enabled for this form.']); return; }
+    if (!cmsOnboardingUnlocked()) { http_response_code(403); echo json_encode(['error' => 'Please unlock the onboarding page first.']); return; }
+    if (!preg_match('~^[a-z0-9]{8,32}$~', $draftId) || !is_array($fields)) { http_response_code(400); echo json_encode(['error' => 'Bad draft request.']); return; }
+    $clean = []; $total = 0;
+    foreach ($fields as $k => $v) {
+        if (!is_string($k) || $k === '' || strlen($k) > 120 || !is_scalar($v)) continue;
+        $v = (string)$v;
+        if (strlen($v) > 20000) $v = substr($v, 0, 20000);
+        $total += strlen($v);
+        if ($total > 250000 || count($clean) >= 200) break;
+        $clean[$k] = $v;
+    }
+    $hasValue = false;
+    foreach ($clean as $v) { if (trim($v) !== '') { $hasValue = true; break; } }
+    if (!$hasValue) { echo json_encode(['ok' => true, 'skipped' => 'empty']); return; }
+    $siteUrl = (string)($body['siteUrl'] ?? ''); $now = date('Y-m-d H:i');
+    $ok = cmsEntriesUpdate(function ($entries) use ($formId, $draftId, $clean, $siteUrl, $now) {
+        $id = 'draft_' . $draftId;
+        foreach ($entries as $i => $e) {
+            if (is_array($e) && ($e['id'] ?? '') === $id) {
+                $e['data'] = $clean; $e['date'] = $now; $e['status'] = 'draft';
+                unset($entries[$i]);
+                array_unshift($entries, $e);     // newest activity first, like every other entry
+                return $entries;
+            }
+        }
+        array_unshift($entries, ['id' => $id, 'formId' => $formId, 'date' => $now, 'started' => $now, 'status' => 'draft', 'data' => $clean, 'source' => $siteUrl]);
+        return $entries;
+    });
+    echo json_encode(['ok' => (bool)$ok]);
+}
+function cmsDropDraft($draftId) {
+    if (!preg_match('~^[a-z0-9]{8,32}$~', (string)$draftId)) return;
+    cmsEntriesUpdate(fn($entries) => array_filter($entries, fn($e) => !is_array($e) || ($e['id'] ?? '') !== 'draft_' . $draftId));
+}
+
 function cmsRecaptchaSecret() {
     // Read the secret from data/site.json (server-side only; never exposed to client)
     try {
@@ -1474,8 +1542,10 @@ function cmsSendForm($body) {
         }
     }
 
-    // Store the submission in data/entries.json (best-effort, non-fatal)
+    // Store the submission in data/entries.json (best-effort, non-fatal); the
+    // autosaved draft of this same visit, if any, is superseded by it.
     cmsStoreEntry($formId, $fields, $siteUrl);
+    if (!empty($body['draftId'])) cmsDropDraft((string)$body['draftId']);
 
     // Push into GoHighLevel as a lead (best-effort; never blocks the form or
     // email). The outcome is captured — and exceptions are logged, never just
@@ -2142,22 +2212,28 @@ function fourgeApiSetSecret($me, $body) {
 // upload. Files are extension- AND content-sniffed (images/SVG only), size-capped,
 // renamed safely, and the uploads directory's .htaccess forces download
 // disposition and denies script execution.
-function cmsOnboardingUpload() {
-    // Same cookie/session the gate uses — see fourgeWriteGateFile().
-    $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-    session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $secure]);
-    session_name('fourge_gate');
-    session_start();
-    // The signed 30-day unlock cookie is the primary proof (see gate_token.php);
-    // the session is only a fallback, since it expires after minutes of idling.
+// Proof that the caller unlocked /onboarding: the signed 30-day cookie from
+// gate_token.php first (renewed here, since the form can take a while), the
+// gate's PHP session as a fallback for browsers that still hold one.
+function cmsOnboardingUnlocked() {
     require_once __DIR__ . '/gate_token.php';
-    $gateMap = is_file(fourgeProtectStorePath()) ? (include fourgeProtectStorePath()) : [];
-    if (!is_array($gateMap)) $gateMap = [];
-    if (!fourgeGateVerify($gateMap, 'onboarding.html') && empty($_SESSION['fourge_unlocked']['onboarding.html'])) {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        $secure = fourgeGateSecure();
+        session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $secure]);
+        session_name('fourge_gate');
+        session_start();
+    }
+    $map = is_file(fourgeProtectStorePath()) ? (include fourgeProtectStorePath()) : [];
+    if (!is_array($map)) $map = [];
+    if (!fourgeGateVerify($map, 'onboarding.html') && empty($_SESSION['fourge_unlocked']['onboarding.html'])) return false;
+    fourgeGateIssue($map, 'onboarding.html');
+    return true;
+}
+function cmsOnboardingUpload() {
+    if (!cmsOnboardingUnlocked()) {
         http_response_code(403);
         echo json_encode(['error' => 'Please unlock the onboarding page first.']); return;
     }
-    fourgeGateIssue($gateMap, 'onboarding.html');   // renew: the form can take a while
 
     // Check the PHP-reported error FIRST: a file over upload_max_filesize
     // arrives with error=UPLOAD_ERR_INI_SIZE and an empty tmp_name, so an
