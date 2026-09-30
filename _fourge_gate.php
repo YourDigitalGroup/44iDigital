@@ -5,6 +5,7 @@
 // set_page_password action ever regenerates this file, it will reset the
 // styling to the generic template (the password-check behavior is the same).
 $store = __DIR__ . '/admin/protect.secret.php';
+require_once __DIR__ . '/admin/gate_token.php';
 $map = is_file($store) ? (include $store) : array();
 if (!is_array($map)) $map = array();
 $p = isset($_GET['p']) ? (string)$_GET['p'] : '';
@@ -21,7 +22,10 @@ if (PHP_VERSION_ID >= 70300) {
 }
 session_name('fourge_gate');
 session_start();
-if (!empty($_SESSION['fourge_unlocked'][$p])) {
+// Signed 30-day cookie first (renewed on every visit); the PHP session is
+// kept only as a fallback for browsers that already hold one.
+if (fourgeGateVerify($map, $p) || !empty($_SESSION['fourge_unlocked'][$p])) {
+    fourgeGateIssue($map, $p);
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: private, no-store');
     readfile($file); exit;
@@ -37,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($pw !== '' && password_verify($pw, $map[$p])) {
         session_regenerate_id(true);
         $_SESSION['fourge_unlocked'][$p] = true;
+        fourgeGateIssue($map, $p);
         header('Location: ' . $clean); exit;
     }
     usleep(400000);
@@ -80,31 +85,31 @@ $e = function($s){ return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
 <header>
 <nav class="top" aria-label="Primary">
   <div class="wrap">
-    <a class="logo" href="index.html" aria-label="44i Digital — Return to homepage"><img src="/assets/44i-digital-logo.svg" alt="44i Digital logo"></a>
+    <a class="logo" href="/" aria-label="44i Digital — Return to homepage"><img src="/assets/44i-digital-logo.svg" alt="44i Digital logo"></a>
     <ul>
-      <li class="has-menu"><a href="#">Who We Serve</a>
+      <li class="has-menu"><a href="/who-we-serve/">Who We Serve</a>
         <div class="dropdown"><div class="dropdown-inner">
-          <a href="tv-radio.html">TV &amp; Radio Broadcasters<span class="desc">For station and group leaders</span></a>
-          <a href="agencies.html">Advertising Agencies<span class="desc">Fill every gap, invisibly</span></a>
-          <a href="publishers.html">Publishers<span class="desc">Newsrooms &amp; media publishers</span></a>
-          <a href="ooh.html">OOH Groups<span class="desc">Out-of-home &amp; billboard operators</span></a>
+          <a href="/who-we-serve/tv-radio/">TV &amp; Radio Broadcasters<span class="desc">For station and group leaders</span></a>
+          <a href="/who-we-serve/agencies/">Advertising Agencies<span class="desc">Fill every gap, invisibly</span></a>
+          <a href="/who-we-serve/publishers/">Publishers<span class="desc">Newsrooms &amp; media publishers</span></a>
+          <a href="/who-we-serve/ooh/">OOH Groups<span class="desc">Out-of-home &amp; billboard operators</span></a>
         </div></div>
       </li>
-      <li class="has-menu"><a href="services.html">What We Do</a>
+      <li class="has-menu"><a href="/services/">What We Do</a>
         <div class="dropdown"><div class="dropdown-inner">
-          <a href="services.html#tier-1">Online Visibility<span class="desc">The foundation — websites, SEO, GBP</span></a>
-          <a href="services.html#tier-2">Content Marketing<span class="desc">The walls — social, email, reputation</span></a>
-          <a href="services.html#tier-3">Targeted Digital<span class="desc">The roof — programmatic, OTT, SEM</span></a>
+          <a href="/services/online-visibility/">Online Visibility<span class="desc">The foundation — websites, SEO, GBP</span></a>
+          <a href="/services/content-marketing/">Content Marketing<span class="desc">The walls — social, email, reputation</span></a>
+          <a href="/services/targeted-digital/">Targeted Digital<span class="desc">The roof — programmatic, OTT, SEM</span></a>
         </div></div>
       </li>
-      <li><a href="why-44i.html">Why 44i Digital</a></li>
-      <li><a href="success-stories.html">Stories</a></li>
-      <li><a href="blog.html">Blog</a></li>
+      <li><a href="/why-44i">Why 44i Digital</a></li>
+      <li><a href="/stories/">Stories</a></li>
+      <li><a href="/blog">Blog</a></li>
     </ul>
     <div class="nav-right">
       <button type="button" class="nav-burger" data-nav-burger="" aria-label="Open menu" aria-expanded="false"><span class="bar"></span></button>
       <a class="nav-phone" href="tel:6052717321"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span class="phone-label">605.271.7321</span></a>
-      <a class="btn btn-primary" href="book-a-demo.html">Book a Demo</a>
+      <a class="btn btn-primary" href="/book-a-demo">Book a Demo</a>
     </div>
   </div>
 </nav>
@@ -130,7 +135,7 @@ $e = function($s){ return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
   <div class="container">
     <div class="foot-grid">
       <div class="foot-col">
-        <a class="footer-logo" href="index.html" aria-label="44i Digital">
+        <a class="footer-logo" href="/" aria-label="44i Digital">
           <img src="/assets/44i-digital-logo-reverse.svg" alt="44i Digital logo">
         </a>
         <p class="foot-tagline">The white label partner that picks up the phone.</p>
@@ -143,36 +148,36 @@ $e = function($s){ return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
       <div class="foot-col">
         <h5>Who We Serve</h5>
         <ul>
-          <li><a href="tv-radio.html">TV &amp; Radio</a></li>
-          <li><a href="agencies.html">Advertising Agencies</a></li>
-          <li><a href="publishers.html">Publishers</a></li>
-          <li><a href="ooh.html">OOH Groups</a></li>
+          <li><a href="/who-we-serve/tv-radio/">TV &amp; Radio</a></li>
+          <li><a href="/who-we-serve/agencies/">Advertising Agencies</a></li>
+          <li><a href="/who-we-serve/publishers/">Publishers</a></li>
+          <li><a href="/who-we-serve/ooh/">OOH Groups</a></li>
         </ul>
       </div>
       <div class="foot-col">
         <h5>What We Do</h5>
         <ul>
-          <li><a href="services.html#tier-1">Online Visibility</a></li>
-          <li><a href="services.html#tier-2">Content Marketing</a></li>
-          <li><a href="services.html#tier-3">Targeted Digital</a></li>
-          <li><a href="services.html">All Services</a></li>
+          <li><a href="/services/online-visibility/">Online Visibility</a></li>
+          <li><a href="/services/content-marketing/">Content Marketing</a></li>
+          <li><a href="/services/targeted-digital/">Targeted Digital</a></li>
+          <li><a href="/services/">All Services</a></li>
         </ul>
       </div>
       <div class="foot-col">
         <h5>Why 44i Digital</h5>
         <ul>
-          <li><a href="why-44i.html">The 44i Digital Difference</a></li>
-          <li><a href="success-stories.html">Success Stories</a></li>
-          <li><a href="blog.html">Blog</a></li>
-          <li><a href="book-a-demo.html">Book a Demo</a></li>
+          <li><a href="/why-44i">The 44i Digital Difference</a></li>
+          <li><a href="/stories/">Success Stories</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/book-a-demo">Book a Demo</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
       <div>© 2026 44i Digital. All rights reserved.</div>
       <div>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
         <a href="#">Accessibility Statement</a>
         <a href="#">Partner Login</a>
       </div>
