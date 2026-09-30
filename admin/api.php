@@ -195,7 +195,7 @@ if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'form_draft', 'posts_normalize', 'blog_reindex'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'form_draft', 'drafts_alert_tick', 'posts_normalize', 'blog_reindex'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -264,6 +264,7 @@ try {
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
         case 'onboarding_upload': ob_end_clean(); cmsOnboardingUpload(); break;
         case 'form_draft': ob_end_clean(); cmsApiFormDraft($body); break;
+        case 'drafts_alert_tick': ob_end_clean(); cmsApiDraftsAlertTick(); break;
         case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
         case 'ga_status':   ob_end_clean(); gaStatus();          break;
@@ -1105,13 +1106,13 @@ function cmsApiFormDraft($body) {
         $id = 'draft_' . $draftId;
         foreach ($entries as $i => $e) {
             if (is_array($e) && ($e['id'] ?? '') === $id) {
-                $e['data'] = $clean; $e['date'] = $now; $e['status'] = 'draft';
+                $e['data'] = $clean; $e['date'] = $now; $e['status'] = 'draft'; $e['updatedTs'] = time();
                 unset($entries[$i]);
                 array_unshift($entries, $e);     // newest activity first, like every other entry
                 return $entries;
             }
         }
-        array_unshift($entries, ['id' => $id, 'formId' => $formId, 'date' => $now, 'started' => $now, 'status' => 'draft', 'data' => $clean, 'source' => $siteUrl]);
+        array_unshift($entries, ['id' => $id, 'formId' => $formId, 'date' => $now, 'started' => $now, 'status' => 'draft', 'updatedTs' => time(), 'data' => $clean, 'source' => $siteUrl]);
         return $entries;
     });
     echo json_encode(['ok' => (bool)$ok]);
@@ -1119,6 +1120,91 @@ function cmsApiFormDraft($body) {
 function cmsDropDraft($draftId) {
     if (!preg_match('~^[a-z0-9]{8,32}$~', (string)$draftId)) return;
     cmsEntriesUpdate(fn($entries) => array_filter($entries, fn($e) => !is_array($e) || ($e['id'] ?? '') !== 'draft_' . $draftId));
+}
+
+// ── IDLE-DRAFT ALERTS ────────────────────────────────────────────────────────
+// A draft that stops changing for an hour is almost certainly a partner who
+// gave up or got stuck. Email the same team the finished form goes to, once
+// per draft (again only if the answers change and 6+ hours have passed), so
+// they can follow up while the answers are fresh. Fourge has no scheduler, so
+// the tick is public and idempotent — .github/workflows/draft-alerts.yml calls
+// it every 15 minutes; anyone else calling it can only cause the same emails
+// the schedule would have sent anyway.
+define('CMS_DRAFT_IDLE_SECS', 3600);
+define('CMS_DRAFT_REALERT_SECS', 6 * 3600);
+// Same transport the finished form uses: SMTP one message per recipient when
+// configured, otherwise the Mailgun HTTP API. Returns true if anything went out.
+function cmsNotifyMail($toList, $subject, $html, $text) {
+    $mg = cmsMailgun();
+    $recipients = array_values(array_filter(array_map('trim', explode(',', (string)$toList))));
+    if (!$recipients) return false;
+    if (cmsSmtpEnabled()) {
+        $fromRaw = trim((string)$mg['from']);
+        if ($fromRaw === '' || stripos($fromRaw, 'example.com') !== false) $fromRaw = SMTP_USER;
+        $fromEmail = $fromRaw; $fromName = '';
+        if (preg_match('/^\s*(.*?)\s*<([^>]+)>\s*$/', $fromRaw, $mm)) { $fromName = trim($mm[1], " \"'"); $fromEmail = trim($mm[2]); }
+        if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) $fromEmail = SMTP_USER;
+        $sentAny = false;
+        foreach ($recipients as $rcpt) {
+            $err = '';
+            if (cmsSmtpSend(['host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
+                'from' => $fromEmail, 'fromName' => $fromName, 'to' => $rcpt, 'toName' => '', 'replyTo' => '', 'replyName' => '',
+                'subject' => $subject, 'html' => $html, 'text' => $text], $err)) $sentAny = true;
+            else error_log('Fourge draft alert SMTP failed for ' . $rcpt . ': ' . $err);
+        }
+        return $sentAny;
+    }
+    if (empty($mg['domain']) || empty($mg['key'])) return false;
+    $ch = curl_init('https://api.mailgun.net/v3/' . $mg['domain'] . '/messages');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_USERPWD => 'api:' . $mg['key'], CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => ['from' => $mg['from'], 'to' => implode(',', $recipients), 'subject' => $subject, 'text' => $text, 'html' => $html],
+        CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 15]);
+    curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return $code === 200;
+}
+function cmsApiDraftsAlertTick() {
+    $file = cmsEntriesPath();
+    $entries = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
+    if (!is_array($entries)) $entries = [];
+    $now = time(); $checked = 0; $alerted = []; $failed = [];
+    $to = cmsFormNotifyOverride('whitelabel-onboarding') ?: cmsMailgun()['notify'];
+    foreach ($entries as $e) {
+        if (!is_array($e) || ($e['status'] ?? '') !== 'draft' || ($e['formId'] ?? '') !== 'whitelabel-onboarding') continue;
+        $checked++;
+        $ts = (int)($e['updatedTs'] ?? 0) ?: (int)strtotime((string)($e['date'] ?? ''));
+        if (!$ts || $now - $ts < CMS_DRAFT_IDLE_SECS) continue;                       // still being worked on (or just abandoned)
+        $data = array_filter((array)($e['data'] ?? []), fn($v) => trim((string)$v) !== '');
+        if (!$data) continue;
+        $hash = sha1(json_encode($data));
+        if (($e['alertedHash'] ?? '') === $hash) continue;                              // team already knows about exactly this
+        if (!empty($e['alertedAt']) && $now - (int)$e['alertedAt'] < CMS_DRAFT_REALERT_SECS) continue;
+        if (count($alerted) >= 5) break;                                               // bound one tick's mail volume
+        $station = trim((string)($data['Station Name/Group'] ?? '')) ?: 'unknown station';
+        $idleMin = (int)floor(($now - $ts) / 60);
+        $subject = 'Onboarding form started but not submitted — ' . $station;
+        $rows = ''; $lines = [];
+        foreach ($data as $k => $v) {
+            $lines[] = $k . ': ' . $v;
+            $rows .= '<tr><td style="padding:6px 12px;font-weight:600;width:200px;border-bottom:1px solid #eee;vertical-align:top">' . htmlspecialchars((string)$k) . '</td><td style="padding:6px 12px;border-bottom:1px solid #eee">' . nl2br(htmlspecialchars((string)$v)) . '</td></tr>';
+        }
+        $intro = 'A partner started the White Label onboarding form but has not submitted it. Their answers so far were autosaved as they typed. '
+               . 'Started ' . htmlspecialchars((string)($e['started'] ?? $e['date'] ?? '')) . ', last activity ' . htmlspecialchars((string)($e['date'] ?? '')) . ' (' . $idleMin . ' min ago). '
+               . 'If they finish, you will get the normal submission email; until then this is everything they entered. It is also listed under Forms → Entries in the CMS as "In progress".';
+        $html = '<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;color:#1A1917;max-width:640px;margin:0 auto;padding:24px">'
+              . '<h2 style="font-size:18px">' . htmlspecialchars($subject) . '</h2><p style="font-size:14px;line-height:1.5">' . $intro . '</p>'
+              . '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' . $rows . '</table>'
+              . '<p style="font-size:11px;color:#A09882;margin-top:16px">Sent via Fourge CMS · ' . date('Y-m-d H:i') . '</p></body></html>';
+        $text = strip_tags(str_replace('. ', ".\n", $intro)) . "\n\n" . implode("\n", $lines);
+        $id = (string)$e['id'];
+        if (cmsNotifyMail($to, $subject, $html, $text)) {
+            $alerted[] = $id;
+            cmsEntriesUpdate(function ($list) use ($id, $hash, $now) {
+                foreach ($list as $i => $x) if (is_array($x) && ($x['id'] ?? '') === $id) { $list[$i]['alertedAt'] = $now; $list[$i]['alertedAtText'] = date('Y-m-d H:i', $now); $list[$i]['alertedHash'] = $hash; }
+                return $list;
+            });
+        } else $failed[] = $id;
+    }
+    echo json_encode(['ok' => true, 'drafts_checked' => $checked, 'alerted' => $alerted, 'failed' => $failed, 'checked_at' => date('c')]);
 }
 
 function cmsRecaptchaSecret() {

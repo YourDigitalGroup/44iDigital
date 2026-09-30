@@ -1,0 +1,21 @@
+name: Onboarding draft alerts
+
+# Fourge has no scheduler of its own. Every 15 minutes, ask the live site to
+# email the onboarding team about any autosaved draft that has sat idle for an
+# hour (see cmsApiDraftsAlertTick in admin/api.php). The action is public and
+# idempotent: it only ever sends the emails this schedule would have sent.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run the idle-draft check
+        run: |
+          out=$(curl -sS --max-time 60 -X POST https://www.44idigital.com/admin/api.php \
+            -H 'Content-Type: application/json' -d '{"action":"drafts_alert_tick"}')
+          echo "$out"
+          echo "$out" | grep -q '"ok":true' || { echo "::error::tick did not return ok"; exit 1; }
