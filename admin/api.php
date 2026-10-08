@@ -1130,8 +1130,6 @@ function cmsDropDraft($draftId) {
 // the tick is public and idempotent — .github/workflows/draft-alerts.yml calls
 // it every 15 minutes; anyone else calling it can only cause the same emails
 // the schedule would have sent anyway.
-define('CMS_DRAFT_IDLE_SECS', 3600);
-define('CMS_DRAFT_REALERT_SECS', 6 * 3600);
 // Same transport the finished form uses: SMTP one message per recipient when
 // configured, otherwise the Mailgun HTTP API. Returns true if anything went out.
 function cmsNotifyMail($toList, $subject, $html, $text) {
@@ -1166,18 +1164,21 @@ function cmsApiDraftsAlertTick() {
     $file = cmsEntriesPath();
     $entries = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
     if (!is_array($entries)) $entries = [];
+    // Local, not define()d: a top-level define() further down this file has not
+    // run yet when the action dispatch near the top calls this function.
+    $idleSecs = 3600; $realertSecs = 6 * 3600;
     $now = time(); $checked = 0; $alerted = []; $failed = [];
     $to = cmsFormNotifyOverride('whitelabel-onboarding') ?: cmsMailgun()['notify'];
     foreach ($entries as $e) {
         if (!is_array($e) || ($e['status'] ?? '') !== 'draft' || ($e['formId'] ?? '') !== 'whitelabel-onboarding') continue;
         $checked++;
         $ts = (int)($e['updatedTs'] ?? 0) ?: (int)strtotime((string)($e['date'] ?? ''));
-        if (!$ts || $now - $ts < CMS_DRAFT_IDLE_SECS) continue;                       // still being worked on (or just abandoned)
+        if (!$ts || $now - $ts < $idleSecs) continue;                       // still being worked on (or just abandoned)
         $data = array_filter((array)($e['data'] ?? []), fn($v) => trim((string)$v) !== '');
         if (!$data) continue;
         $hash = sha1(json_encode($data));
         if (($e['alertedHash'] ?? '') === $hash) continue;                              // team already knows about exactly this
-        if (!empty($e['alertedAt']) && $now - (int)$e['alertedAt'] < CMS_DRAFT_REALERT_SECS) continue;
+        if (!empty($e['alertedAt']) && $now - (int)$e['alertedAt'] < $realertSecs) continue;
         if (count($alerted) >= 5) break;                                               // bound one tick's mail volume
         $station = trim((string)($data['Station Name/Group'] ?? '')) ?: 'unknown station';
         $idleMin = (int)floor(($now - $ts) / 60);
