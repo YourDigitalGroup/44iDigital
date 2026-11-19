@@ -794,8 +794,8 @@ function cmsWriteFile($body) {
     // (blog.html, blog-*.html, data/posts.json) stay CMS-managed on purpose.
     $repoManaged = ['index.html','why-44i.html','book-a-demo.html','onboarding.html','glossary.html',
         'privacy.html','terms.html','accessibility.html','who-we-serve.html','nav.js','willow.js',
-        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php','admin/gate_token.php'];
-    $repoPrefixes = ['services/','program/','who-we-serve/','stories/','assets/og/'];
+        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php','admin/gate_token.php','favicon.ico','site.webmanifest'];
+    $repoPrefixes = ['services/','program/','who-we-serve/','stories/','assets/og/','assets/favicon/'];
     $isRepoManaged = in_array($relNorm, $repoManaged, true);
     foreach ($repoPrefixes as $pref) { if (strpos($relNorm, $pref) === 0) $isRepoManaged = true; }
     if ($isRepoManaged) {

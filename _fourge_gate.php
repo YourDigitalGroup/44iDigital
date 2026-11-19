@@ -57,6 +57,11 @@ $e = function($s){ return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon/favicon-96.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/favicon/favicon-180.png" sizes="180x180">
+<link rel="manifest" href="/site.webmanifest">
 <title>Protected Page | 44i Digital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">

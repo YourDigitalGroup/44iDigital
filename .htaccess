@@ -218,3 +218,16 @@ RewriteRule ^onboarding\.html$ /_fourge_gate.php?p=onboarding.html [L,QSA]
   ExpiresByType application/javascript "access plus 7 days"
   ExpiresByType font/woff2 "access plus 30 days"
 </IfModule>
+
+# Favicon set (Nov 2026): Google needs a crawlable square icon and the
+# <link rel="icon"> tags on every page; these give the manifest its proper
+# type and let browsers cache the icons like other images.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType image/x-icon .ico
+  AddType image/svg+xml .svg
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresByType image/x-icon "access plus 30 days"
+  ExpiresByType application/manifest+json "access plus 7 days"
+</IfModule>
