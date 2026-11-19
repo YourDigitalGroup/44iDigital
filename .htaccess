@@ -44,6 +44,19 @@
   RewriteRule ^posts/?$ /blog? [R=301,L,NC]
 </IfModule>
 
+# Old WordPress / Yoast sitemap addresses still submitted in Search Console
+# (and linked from old robots copies) — send them to the one real sitemap so
+# they stop reporting "Couldn't fetch". Same-host 301; the www rule above has
+# already normalized the host by the time these match.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^sitemap_index\.xml$ https://www.44idigital.com/sitemap.xml [R=301,L,NC]
+  RewriteRule ^sitemap/?$ https://www.44idigital.com/sitemap.xml [R=301,L,NC]
+  RewriteRule ^(post|page|category|author|attachment|tag|product|portfolio|team|post_tag)-sitemap(\d*)\.xml$ https://www.44idigital.com/sitemap.xml [R=301,L,NC]
+  RewriteRule ^sitemap\.xml\.gz$ https://www.44idigital.com/sitemap.xml [R=301,L,NC]
+  RewriteRule ^wp-sitemap(-[a-z0-9-]+)?\.xml$ https://www.44idigital.com/sitemap.xml [R=301,L,NC]
+</IfModule>
+
 # Post-deploy audit (Sept 2026) — legacy WordPress URLs, Section 3 map.
 # These are Google-indexed URLs from the old site; without these rules they
 # 404 on www. One hop each, no chains.
