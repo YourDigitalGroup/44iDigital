@@ -150,14 +150,20 @@
   </div>
 </section>
 <script>
+/* anti-spam token (admin/form_guard.php): fetched on load, must be 4 s old when sent */
+var fiTok = '', fiTokAt = 0;
+fetch('/admin/api.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'form_token' }) })
+  .then(function (r) { return r.json(); }).then(function (d) { fiTok = (d && d.token) || ''; fiTokAt = Date.now(); }).catch(function () {});
 async function fiSubmit(e, form) {
   e.preventDefault();
   var msg = form.querySelector('.ff-msg'); var btn = form.querySelector('button[type=submit]');
   var data = {}; new FormData(form).forEach(function (v, k) { data[k] = v; });
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
+    var wait = 4300 - (Date.now() - fiTokAt);
+    if (fiTok && wait > 0) await new Promise(function (r) { setTimeout(r, wait); });
     var res = await fetch('/admin/api.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'send_form', formId: 'fourge-insights-sample', fields: data, subject: 'Fourge Insights sample report request', siteUrl: location.href }) });
+      body: JSON.stringify({ action: 'send_form', formId: 'fourge-insights-sample', fields: data, token: fiTok, subject: 'Fourge Insights sample report request', siteUrl: location.href }) });
     var d = await res.json(); if (d.error) throw new Error(d.error);
     msg.style.display = ''; msg.style.background = '#dcfce7'; msg.style.color = '#166534';
     msg.textContent = 'Thanks! Check your inbox — the sample report is on its way.';
@@ -225,5 +231,5 @@ async function fiSubmit(e, form) {
 </footer>
 <script defer="" src="/nav.js?v=perf1"></script>
 <script src="/adaptify.js?v=perf1" defer=""></script>
-<script src="/willow.js?v=perf1" defer=""></script>
+<script src="/willow.js?v=spam1" defer=""></script>
 </body></html>
