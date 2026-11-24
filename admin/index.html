@@ -1513,8 +1513,19 @@ textarea.fb-input{resize:vertical}
            FORMS
       ═══════════════════════════════════════════════════════ -->
       <div class="panel" id="p-forms">
-        <div class="ta" style="display:flex;gap:8px;flex-wrap:wrap"><button class="fd-btn-primary" onclick="openNewForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Form</button><button class="fd-btn-secondary" onclick="openConvertForm()" title="Turn an existing form on one of your pages into a managed form so its submissions are captured"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg> Convert a page form</button></div>
+        <div class="ta" style="display:flex;gap:8px;flex-wrap:wrap"><button class="fd-btn-primary" onclick="openNewForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Form</button><button class="fd-btn-secondary" onclick="openConvertForm()" title="Turn an existing form on one of your pages into a managed form so its submissions are captured"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg> Convert a page form</button><button class="btn btn-o btn-sm" onclick="openSpamLog()" title="Every submission the anti-spam guard blocked, with the reason — check that nothing real is being caught"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> Spam Log</button></div>
         <div id="forms-body"></div>
+      </div>
+
+      <!-- SPAM LOG — what admin/form_guard.php blocked, newest first -->
+      <div class="panel" id="p-spamlog">
+        <div class="ta" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-o btn-sm" onclick="backToForms()">← Back to Forms</button>
+          <h2 id="spamlog-title" style="font-size:16px;margin:0">Spam Log</h2>
+          <span style="flex:1"></span>
+          <button class="btn btn-o btn-sm" onclick="openSpamLog()">Refresh</button>
+        </div>
+        <div id="spamlog-body"></div>
       </div>
 
       <!-- FORM BUILDER -->
@@ -3441,7 +3452,7 @@ async function viewEntries(formId){
   if(!body)return;
   if(!rows.length){ body.innerHTML='<div class="empty"><h3>No submissions yet</h3><p>Entries will appear here when visitors submit this form.</p></div>'; return; }
   const cols=entryColumns(rows);
-  const thead='<tr><th style="white-space:nowrap">Date</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>';
+  const thead='<tr><th style="white-space:nowrap">Date</th><th style="white-space:nowrap" title="The page the browser reported it was submitted from. Blank or odd values usually mean a bot posted straight to the API.">Submitted from</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>';
   const drafts=rows.filter(e=>e.status==='draft').length;
   const tbody=rows.map(e=>{
     const d=e.data||{};
@@ -3449,6 +3460,7 @@ async function viewEntries(formId){
     // was never submitted, but every answer entered so far is here.
     const badge=e.status==='draft'?'<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:rgba(245,158,11,.14);color:#b45309;margin-right:6px;vertical-align:1px" title="Not submitted — autosaved as the visitor typed'+(e.started?' (started '+esc(e.started)+')':'')+(e.alertedAtText?' · team emailed '+esc(e.alertedAtText):'')+'">In progress'+(e.alertedAtText?' · emailed':'')+'</span>':'';
     return '<tr'+(e.status==='draft'?' style="background:rgba(245,158,11,.05)"':'')+'><td style="white-space:nowrap;color:var(--muted);font-size:12px">'+badge+esc(e.date||'')+'</td>'
+      +'<td style="font-size:12px;white-space:nowrap">'+entrySourceCell(e.source)+'</td>'
       +cols.map(c=>'<td style="font-size:13px">'+esc(d[c]!=null?String(d[c]):'')+'</td>').join('')
       +'</tr>';
   }).join('');
@@ -3461,6 +3473,49 @@ async function viewEntries(formId){
 }
 function backToForms(){ goPanel('p-forms'); }
 function viewOrphanEntries(i){ const id=_orphanEntryIds[i]; if(id!=null) viewEntries(id); }
+// "Submitted from": the page URL the browser reported with the submission.
+// Shown as the path for this site's own pages (linked), the full value for
+// anything else, and a dash when the request carried none — a bot posting
+// straight to the API rarely bothers to send one.
+function entrySourceCell(src){
+  const s=String(src||'').trim();
+  if(!s) return '<span style="color:var(--muted)">—</span>';
+  let label=s, href='';
+  try{ const u=new URL(s); href=u.href; const here=((_site&&_site.website)||'').replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/$/,''); const host=u.host.replace(/^www\./,''); label=(here&&host===here)?(u.pathname+u.search||'/'):s; }catch(e){}
+  const text=esc(label.length>60?label.slice(0,57)+'…':label);
+  return href?'<a href="'+esc(href)+'" target="_blank" rel="noopener" title="'+esc(s)+'">'+text+'</a>':'<span title="'+esc(s)+'">'+text+'</span>';
+}
+// ── SPAM LOG ──────────────────────────────────────────────────────
+// data/spam-log.json is written by admin/form_guard.php on every blocked
+// submission (IPs stored hashed) and is denied over public HTTP, so it is read
+// through the authenticated API. Newest first, capped at 300 on the server.
+async function openSpamLog(){
+  goPanel('p-spamlog');
+  const body=document.getElementById('spamlog-body'); if(!body) return;
+  const{url,token}=getApiCfg();
+  if(!url||!token){ body.innerHTML='<div class="empty"><h3>Server API not configured</h3><p>Go to <strong>Settings → Server API</strong> to connect, then return here.</p></div>'; return; }
+  body.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px">Loading…</div>';
+  let log=[];
+  try{ const d=await apiCall('read_file',{path:'data/spam-log.json'}); if(d.content) log=JSON.parse(d.content); }
+  catch(e){ /* no file yet = nothing blocked yet */ }
+  if(!Array.isArray(log)) log=[];
+  const titleEl=document.getElementById('spamlog-title'); if(titleEl) titleEl.textContent='Spam Log ('+log.length+' blocked'+(log.length>=300?', showing the latest 300':'')+')';
+  if(!log.length){ body.innerHTML='<div class="empty"><h3>Nothing blocked yet</h3><p>Every submission the anti-spam guard stops will be listed here with the reason.</p></div>'; return; }
+  const byReason={}; log.forEach(r=>{ const k=String(r.reason||'').replace(/\s*\(.*$/,'').replace(/:.*$/,''); byReason[k]=(byReason[k]||0)+1; });
+  const since=log[log.length-1].at||'';
+  const chips=Object.entries(byReason).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<span style="display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:99px;font-size:12px;margin:0 6px 6px 0"><b>'+n+'</b> '+esc(k)+'</span>').join('');
+  const rows=log.map(r=>'<tr>'
+    +'<td style="white-space:nowrap;color:var(--muted);font-size:12px">'+esc(r.at||'')+'</td>'
+    +'<td style="font-size:12.5px;white-space:nowrap"><span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(220,38,38,.1);color:#b91c1c">'+esc(r.reason||'')+'</span></td>'
+    +'<td style="font-size:12px;color:var(--muted);white-space:nowrap">'+esc(r.formId||'')+'</td>'
+    +'<td style="font-family:var(--font-mono);font-size:11.5px;color:var(--muted)" title="Hashed — the same visitor always shows the same code">'+esc(r.ip||'')+'</td>'
+    +'<td style="font-size:12.5px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.preview||'')+'">'+esc(r.preview||'')+'</td>'
+    +'</tr>').join('');
+  body.innerHTML=''
+    +'<div style="margin-bottom:10px;font-size:13px;color:var(--muted)">Blocked attempts since '+esc(since)+', newest first. "Token" means a post straight to the API without loading the page (or an instant submit); "honeypot" means a bot filled the hidden field. Real visitors only ever see a block as a "please reload" or "too many submissions" message, so a familiar name here is worth a look.</div>'
+    +'<div style="margin-bottom:12px">'+chips+'</div>'
+    +'<div style="overflow:auto"><table class="dt"><thead><tr><th>When</th><th>Reason</th><th>Form</th><th>Visitor</th><th>What they sent</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
 function entriesForForm(formId){
   return (_entries||[]).filter(e=>(e.formId||'')===(formId||'')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 }
@@ -3485,8 +3540,8 @@ function exportEntriesCsv(){
   const rows=entriesForForm(formId);
   if(!rows.length){ toast('No entries to export','err'); return; }
   const cols=entryColumns(rows);
-  const header=['Date'].concat(cols).map(csvCell).join(',');
-  const lines=rows.map(e=>{ const d=e.data||{}; return [e.date||''].concat(cols.map(c=>d[c])).map(csvCell).join(','); });
+  const header=['Date','Submitted from'].concat(cols).map(csvCell).join(',');
+  const lines=rows.map(e=>{ const d=e.data||{}; return [e.date||'',e.source||''].concat(cols.map(c=>d[c])).map(csvCell).join(','); });
   const csv='\uFEFF'+[header].concat(lines).join('\r\n')+'\r\n';   // BOM so Excel opens it as UTF-8
   let slug=((form?decodeHtml(form.title):formId)||'form').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
   if(!slug) slug='form';
