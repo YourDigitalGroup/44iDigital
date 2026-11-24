@@ -3459,7 +3459,9 @@ async function viewEntries(formId){
     // Autosaved while the visitor typed (see form_draft in api.php): the form
     // was never submitted, but every answer entered so far is here.
     const badge=e.status==='draft'?'<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:rgba(245,158,11,.14);color:#b45309;margin-right:6px;vertical-align:1px" title="Not submitted — autosaved as the visitor typed'+(e.started?' (started '+esc(e.started)+')':'')+(e.alertedAtText?' · team emailed '+esc(e.alertedAtText):'')+'">In progress'+(e.alertedAtText?' · emailed':'')+'</span>':'';
-    return '<tr'+(e.status==='draft'?' style="background:rgba(245,158,11,.05)"':'')+'><td style="white-space:nowrap;color:var(--muted);font-size:12px">'+badge+esc(e.date||'')+'</td>'
+    const submitBtn=e.status==='draft'?'<div style="margin-top:6px"><button class="btn btn-o btn-sm" onclick="submitDraftEntry(\''+esc(e.id)+'\',this)" title="Send the team the normal submission email with these answers and file it as a finished entry">Submit now</button></div>':'';
+    const fromDraft=e.submittedFromDraft?'<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:rgba(16,185,129,.12);color:#047857;margin-right:6px;vertical-align:1px" title="Submitted from the CMS'+(e.submittedBy?' by '+esc(e.submittedBy):'')+' using the partner’s autosaved answers">Submitted for partner</span>':'';
+    return '<tr'+(e.status==='draft'?' style="background:rgba(245,158,11,.05)"':'')+'><td style="white-space:nowrap;color:var(--muted);font-size:12px">'+badge+fromDraft+esc(e.date||'')+submitBtn+'</td>'
       +'<td style="font-size:12px;white-space:nowrap">'+entrySourceCell(e.source)+'</td>'
       +cols.map(c=>'<td style="font-size:13px">'+esc(d[c]!=null?String(d[c]):'')+'</td>').join('')
       +'</tr>';
@@ -3470,6 +3472,25 @@ async function viewEntries(formId){
       +'<button class="btn btn-o btn-sm" onclick="exportEntriesCsv()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV</button>'
     +'</div>'
     +'<div style="overflow:auto"><table class="dt"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
+}
+// "Submit now" on an In progress entry: the server emails the form's normal
+// recipients the usual "New submission" message (Reply-To the partner) and
+// files the answers as a finished entry. See draft_submit in api.php.
+async function submitDraftEntry(id,btn){
+  const e=(_entries||[]).find(x=>x&&x.id===id); if(!e) return;
+  const d=e.data||{};
+  const who=d['Station Name/Group']||d['Name']||d['Email']||'this partner';
+  if(!confirm('Submit the in-progress entry for “'+who+'”?\n\nThe team gets the normal submission email with the answers entered so far (it notes that it was submitted from the CMS). Any logo files the partner picked were never uploaded and won’t be included.')) return;
+  if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  try{
+    const r=await apiCall('draft_submit',{id});
+    if(r&&r.error) throw new Error(r.error);
+    toast('Submitted “'+who+'” — emailed '+((r&&r.recipients)||'the')+' recipient'+((r&&r.recipients)===1?'':'s')+' ✓','ok');
+    await viewEntries(_curEntriesForm);
+  }catch(err){
+    toast(err.message||'Could not submit that entry','err');
+    if(btn){ btn.disabled=false; btn.textContent='Submit now'; }
+  }
 }
 function backToForms(){ goPanel('p-forms'); }
 function viewOrphanEntries(i){ const id=_orphanEntryIds[i]; if(id!=null) viewEntries(id); }

@@ -265,6 +265,7 @@ try {
         case 'form_token':  ob_end_clean(); require_once __DIR__ . '/form_guard.php'; echo json_encode(['token' => cmsFormToken()]); break;
         case 'onboarding_upload': ob_end_clean(); cmsOnboardingUpload(); break;
         case 'form_draft': ob_end_clean(); cmsApiFormDraft($body); break;
+        case 'draft_submit': ob_end_clean(); cmsApiDraftSubmit($body, $authUser); break;
         case 'drafts_alert_tick': ob_end_clean(); cmsApiDraftsAlertTick(); break;
         case 'test_email':  ob_end_clean(); cmsTestEmail($body); break;
         case 'ga_save_credentials': ob_end_clean(); gaSaveCredentials($body); break;
@@ -1154,6 +1155,60 @@ function cmsDropDraft($draftId) {
     if (!preg_match('~^[a-z0-9]{8,32}$~', (string)$draftId)) return;
     cmsEntriesUpdate(fn($entries) => array_filter($entries, fn($e) => !is_array($e) || ($e['id'] ?? '') !== 'draft_' . $draftId));
 }
+// Submit an in-progress (autosaved) entry on the partner's behalf, from the
+// CMS: the team gets the same "New submission" email the form sends, Reply-To
+// the partner, and the draft becomes an ordinary entry. Signed-in admins only
+// (not in $PUBLIC_ACTIONS). The email goes out first; the draft is converted
+// only once it has, so a mail failure leaves it in place to try again.
+function cmsApiDraftSubmit($body, $authUser) {
+    $id = (string)($body['id'] ?? '');
+    if (!preg_match('~^draft_[a-z0-9]{8,32}$~', $id)) { http_response_code(400); echo json_encode(['error' => 'Bad entry id.']); return; }
+    $file = cmsEntriesPath();
+    $entries = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
+    $draft = null;
+    foreach ((array)$entries as $e) if (is_array($e) && ($e['id'] ?? '') === $id && ($e['status'] ?? '') === 'draft') { $draft = $e; break; }
+    if (!$draft) { http_response_code(404); echo json_encode(['error' => 'That in-progress entry is gone — it may already have been submitted. Reload the entries.']); return; }
+
+    $formId = (string)($draft['formId'] ?? '');
+    $fields = array_map(fn($v) => (string)$v, (array)($draft['data'] ?? []));
+    $siteUrl = (string)($draft['source'] ?? '');
+    $by = $authUser ? (trim((string)($authUser['display_name'] ?? '')) ?: (string)($authUser['username'] ?? 'an admin')) : 'an admin';
+    $to = cmsFormNotifyOverride($formId) ?: cmsMailgun()['notify'];
+    if (!$to) { http_response_code(500); echo json_encode(['error' => 'No notification recipients are configured for this form.']); return; }
+    $replyTo = ''; foreach ($fields as $v) { $v = trim($v); if (filter_var($v, FILTER_VALIDATE_EMAIL)) { $replyTo = $v; break; } }
+
+    $subject = $formId === 'whitelabel-onboarding' ? 'New submission from White Label Onboarding' : 'New form submission';
+    $note = 'Submitted from the CMS by ' . $by . ' on ' . date('Y-m-d H:i') . ', using the answers the partner had entered (autosaved as they typed; started '
+          . (string)($draft['started'] ?? $draft['date'] ?? '') . ', last edited ' . (string)($draft['date'] ?? '') . '). '
+          . 'The partner did not press Submit themselves, so any logo files they picked were not uploaded — ask them to send those separately.';
+    $textLines = []; $htmlRows = '';
+    foreach ($fields as $label => $value) {
+        $textLines[] = "$label: $value";
+        $htmlRows .= '<tr><td style="padding:6px 12px;font-weight:600;width:140px;border-bottom:1px solid #eee">' . htmlspecialchars((string)$label) . '</td><td style="padding:6px 12px;border-bottom:1px solid #eee">' . nl2br(htmlspecialchars($value)) . '</td></tr>';
+    }
+    $text = $note . "\n\n" . implode("\n", $textLines) . "\n\n---\nSent from: $siteUrl";
+    $html = '<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;color:#1A1917;max-width:600px;margin:0 auto;padding:24px">'
+          . '<h2 style="font-size:18px">' . htmlspecialchars($subject) . '</h2>'
+          . '<p style="color:#857F6E;font-size:13px">From: ' . htmlspecialchars($siteUrl) . '</p>'
+          . '<p style="font-size:13px;line-height:1.5;background:#FCF1DE;border-radius:6px;padding:10px 12px">' . htmlspecialchars($note) . '</p>'
+          . '<table style="width:100%;border-collapse:collapse;border:1px solid #eee">' . $htmlRows . '</table>'
+          . '<p style="font-size:11px;color:#A09882;margin-top:16px">Sent via Fourge CMS · ' . date('Y-m-d H:i') . '</p></body></html>';
+    if (!cmsNotifyMail($to, $subject, $html, $text, $replyTo)) {
+        http_response_code(500); echo json_encode(['error' => 'The email could not be sent, so the entry was left in progress. Check Settings → Email and try again.']); return;
+    }
+    $now = date('Y-m-d H:i'); $newId = uniqid('ent_');
+    cmsEntriesUpdate(function ($list) use ($id, $newId, $now, $by) {
+        foreach ($list as $i => $x) {
+            if (!is_array($x) || ($x['id'] ?? '') !== $id) continue;
+            $x['id'] = $newId; $x['date'] = $now; $x['submittedFromDraft'] = true; $x['submittedBy'] = $by;
+            unset($x['status'], $x['alertedAt'], $x['alertedHash']);
+            unset($list[$i]); array_unshift($list, $x);
+            break;
+        }
+        return $list;
+    });
+    echo json_encode(['ok' => true, 'id' => $newId, 'recipients' => count(array_filter(array_map('trim', explode(',', (string)$to))))]);
+}
 
 // ── IDLE-DRAFT ALERTS ────────────────────────────────────────────────────────
 // A draft that stops changing for an hour is almost certainly a partner who
@@ -1165,7 +1220,7 @@ function cmsDropDraft($draftId) {
 // the schedule would have sent anyway.
 // Same transport the finished form uses: SMTP one message per recipient when
 // configured, otherwise the Mailgun HTTP API. Returns true if anything went out.
-function cmsNotifyMail($toList, $subject, $html, $text) {
+function cmsNotifyMail($toList, $subject, $html, $text, $replyTo = '') {
     $mg = cmsMailgun();
     $recipients = array_values(array_filter(array_map('trim', explode(',', (string)$toList))));
     if (!$recipients) return false;
@@ -1179,7 +1234,7 @@ function cmsNotifyMail($toList, $subject, $html, $text) {
         foreach ($recipients as $rcpt) {
             $err = '';
             if (cmsSmtpSend(['host' => SMTP_HOST, 'port' => SMTP_PORT, 'secure' => SMTP_SECURE, 'user' => SMTP_USER, 'pass' => SMTP_PASS,
-                'from' => $fromEmail, 'fromName' => $fromName, 'to' => $rcpt, 'toName' => '', 'replyTo' => '', 'replyName' => '',
+                'from' => $fromEmail, 'fromName' => $fromName, 'to' => $rcpt, 'toName' => '', 'replyTo' => $replyTo, 'replyName' => '',
                 'subject' => $subject, 'html' => $html, 'text' => $text], $err)) $sentAny = true;
             else error_log('Fourge draft alert SMTP failed for ' . $rcpt . ': ' . $err);
         }
@@ -1188,7 +1243,7 @@ function cmsNotifyMail($toList, $subject, $html, $text) {
     if (empty($mg['domain']) || empty($mg['key'])) return false;
     $ch = curl_init('https://api.mailgun.net/v3/' . $mg['domain'] . '/messages');
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_USERPWD => 'api:' . $mg['key'], CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => ['from' => $mg['from'], 'to' => implode(',', $recipients), 'subject' => $subject, 'text' => $text, 'html' => $html],
+        CURLOPT_POSTFIELDS => ['from' => $mg['from'], 'to' => implode(',', $recipients), 'subject' => $subject, 'text' => $text, 'html' => $html] + ($replyTo !== '' ? ['h:Reply-To' => $replyTo] : []),
         CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 15]);
     curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     return $code === 200;

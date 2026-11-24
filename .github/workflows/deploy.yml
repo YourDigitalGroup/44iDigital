@@ -27,6 +27,15 @@ jobs:
             echo "$CHANGED"
             exit 1
           fi
+      # A PHP syntax error in admin/ takes down every form, the onboarding
+      # uploads and the CMS at once, so never upload one.
+      - name: PHP syntax check
+        run: |
+          fail=0
+          for f in $(git ls-files 'admin/*.php' 'admin/**/*.php' '*.php'); do
+            php -l "$f" >/dev/null || { echo "::error file=$f::PHP syntax error"; php -l "$f"; fail=1; }
+          done
+          exit $fail
       - uses: SamKirkland/FTP-Deploy-Action@4.3.2
         with:
           server: ${{ secrets.FTP_SERVER }}

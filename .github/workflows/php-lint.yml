@@ -1,0 +1,19 @@
+name: PHP syntax check
+
+# Same check the deploy runs before uploading, but on pull requests, so a
+# syntax error shows up before merge instead of blocking the deploy.
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: php -l
+        run: |
+          fail=0
+          for f in $(git ls-files 'admin/*.php' 'admin/**/*.php' '*.php'); do
+            php -l "$f" >/dev/null || { echo "::error file=$f::PHP syntax error"; php -l "$f"; fail=1; }
+          done
+          exit $fail
