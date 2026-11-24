@@ -24,3 +24,7 @@ admin/.ga-token.json
 .DS_Store
 Thumbs.db
 *.swp
+
+# Form anti-spam runtime files (server-side only, written by admin/form_guard.php)
+data/ratelimit.json
+data/spam-log.json
