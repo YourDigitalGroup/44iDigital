@@ -3499,22 +3499,62 @@ async function openSpamLog(){
   try{ const d=await apiCall('read_file',{path:'data/spam-log.json'}); if(d.content) log=JSON.parse(d.content); }
   catch(e){ /* no file yet = nothing blocked yet */ }
   if(!Array.isArray(log)) log=[];
+  await loadSpamRules();
   const titleEl=document.getElementById('spamlog-title'); if(titleEl) titleEl.textContent='Spam Log ('+log.length+' blocked'+(log.length>=300?', showing the latest 300':'')+')';
   if(!log.length){ body.innerHTML='<div class="empty"><h3>Nothing blocked yet</h3><p>Every submission the anti-spam guard stops will be listed here with the reason.</p></div>'; return; }
-  const byReason={}; log.forEach(r=>{ const k=String(r.reason||'').replace(/\s*\(.*$/,'').replace(/:.*$/,''); byReason[k]=(byReason[k]||0)+1; });
+  const byReason={}; log.forEach(r=>{ const k=String(r.reason||'').replace(/\s*(\(|"|→).*$/,'').replace(/:.*$/,'').trim(); byReason[k]=(byReason[k]||0)+1; });
   const since=log[log.length-1].at||'';
   const chips=Object.entries(byReason).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<span style="display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:99px;font-size:12px;margin:0 6px 6px 0"><b>'+n+'</b> '+esc(k)+'</span>').join('');
+  const blocked=new Set((_spamRules.blockedVisitors||[]));
   const rows=log.map(r=>'<tr>'
     +'<td style="white-space:nowrap;color:var(--muted);font-size:12px">'+esc(r.at||'')+'</td>'
     +'<td style="font-size:12.5px;white-space:nowrap"><span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(220,38,38,.1);color:#b91c1c">'+esc(r.reason||'')+'</span></td>'
     +'<td style="font-size:12px;color:var(--muted);white-space:nowrap">'+esc(r.formId||'')+'</td>'
-    +'<td style="font-family:var(--font-mono);font-size:11.5px;color:var(--muted)" title="Hashed — the same visitor always shows the same code">'+esc(r.ip||'')+'</td>'
+    +'<td style="font-family:var(--font-mono);font-size:11.5px;color:var(--muted);white-space:nowrap" title="Hashed — the same visitor always shows the same code">'+esc(r.ip||'')
+      +(r.ip?(blocked.has(r.ip)?' <span style="font-size:10px;font-weight:700;color:#b91c1c">BLOCKED</span>':' <button class="btn btn-o btn-xs" onclick="spamBlockVisitor(\''+esc(r.ip)+'\')" title="Silently drop everything this visitor sends from now on">Block</button>'):'')+'</td>'
     +'<td style="font-size:12.5px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.preview||'')+'">'+esc(r.preview||'')+'</td>'
     +'</tr>').join('');
   body.innerHTML=''
-    +'<div style="margin-bottom:10px;font-size:13px;color:var(--muted)">Blocked attempts since '+esc(since)+', newest first. "Token" means a post straight to the API without loading the page (or an instant submit); "honeypot" means a bot filled the hidden field. Real visitors only ever see a block as a "please reload" or "too many submissions" message, so a familiar name here is worth a look.</div>'
+    +spamRulesHtml()
+    +'<div style="margin:18px 0 10px;font-size:13px;color:var(--muted)">Blocked attempts since '+esc(since)+', newest first. "Token" means a post straight to the API without loading the page (or an instant submit); "honeypot" means a bot filled the hidden field. A visitor stopped twice in a day is locked out automatically for 7 days. Real visitors only ever see a block as a "please reload" or "too many submissions" message, so a familiar name here is worth a look.</div>'
     +'<div style="margin-bottom:12px">'+chips+'</div>'
     +'<div style="overflow:auto"><table class="dt"><thead><tr><th>When</th><th>Reason</th><th>Form</th><th>Visitor</th><th>What they sent</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+// ── Spam rules (data/spam-rules.json, read by form_guard.php on every submission) ──
+// Phrases are matched case-insensitively against every field; "LmMqtzme" is
+// built in. Visitors are the hashed codes from the log; raw IP addresses are
+// also accepted for anyone the team identifies some other way.
+let _spamRules={blockedPhrases:[],blockedVisitors:[],blockedIps:[]};
+async function loadSpamRules(){
+  _spamRules={blockedPhrases:[],blockedVisitors:[],blockedIps:[]};
+  try{ const d=await apiCall('read_file',{path:'data/spam-rules.json'}); if(d.content){ const r=JSON.parse(d.content); ['blockedPhrases','blockedVisitors','blockedIps'].forEach(k=>{ _spamRules[k]=Array.isArray(r[k])?r[k].map(String):[]; }); } }catch(e){}
+}
+function spamRulesHtml(){
+  const ta=(id,label,arr,ph)=>'<div class="fg" style="flex:1;min-width:220px"><label>'+label+'</label><textarea id="'+id+'" rows="4" placeholder="'+ph+'" style="width:100%;font-family:var(--font-mono);font-size:12px">'+esc(arr.join('\n'))+'</textarea></div>';
+  return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface)">'
+    +'<div style="font-weight:700;font-size:13px;margin-bottom:8px">Block lists <span style="font-weight:400;color:var(--muted)">— one per line; applied to every submission the moment you save</span></div>'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap">'
+      +ta('spam-phrases','Blocked phrases (built in: LmMqtzme)',_spamRules.blockedPhrases,'a word or name that only spam uses')
+      +ta('spam-visitors','Blocked visitors (codes from the log)',_spamRules.blockedVisitors,'e.g. 3f2a9c1e5b7d4e8a')
+      +ta('spam-ips','Blocked IP addresses',_spamRules.blockedIps,'e.g. 203.0.113.9')
+    +'</div>'
+    +'<div style="margin-top:8px"><button class="fd-btn-primary" onclick="saveSpamRules()">Save block lists</button></div>'
+  +'</div>';
+}
+function spamRulesFromForm(){
+  const lines=id=>(document.getElementById(id)?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  return {blockedPhrases:lines('spam-phrases'),blockedVisitors:lines('spam-visitors'),blockedIps:lines('spam-ips')};
+}
+async function saveSpamRules(rules){
+  rules=rules||spamRulesFromForm();
+  try{ await apiCall('write_file',{path:'data/spam-rules.json',content:JSON.stringify(rules,null,2)}); _spamRules=rules; toast('Block lists saved — in effect now','ok'); }
+  catch(e){ toast('Save failed: '+e.message,'err'); }
+}
+async function spamBlockVisitor(code){
+  const rules=spamRulesFromForm();
+  if(!rules.blockedVisitors.includes(code)) rules.blockedVisitors.push(code);
+  await saveSpamRules(rules);
+  openSpamLog();
 }
 function entriesForForm(formId){
   return (_entries||[]).filter(e=>(e.formId||'')===(formId||'')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));

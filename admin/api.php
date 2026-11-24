@@ -1628,6 +1628,10 @@ function cmsSendForm($body) {
 
     // ── anti-spam gate (form_guard.php) ─────────────────────────────────────
     $why = '';
+    if (cmsFormIsBlockedVisitor($why)) {
+        cmsFormSpamLog($why, $formId, $fields);
+        echo json_encode(['ok' => true]); return;              // blocked visitors get a quiet "ok" too
+    }
     if (!cmsFormIdAllowed($formId, $notifyOverride !== null)) {
         cmsFormSpamLog('unknown form', $formId, $fields);
         http_response_code(400); echo json_encode(['error' => 'Unknown form.']); return;
