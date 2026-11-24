@@ -195,7 +195,7 @@ if ($action === '' && $_SERVER['REQUEST_METHOD'] === 'POST' && $__pmax > 0
 //    off by the optional reCAPTCHA check inside cmsSendForm.
 //  • Account + secret actions require a valid session token (from login).
 //  • Legacy file / GA / AI actions accept the shared API_TOKEN OR a session token.
-$PUBLIC_ACTIONS  = ['login', 'send_form', 'onboarding_upload', 'form_draft', 'drafts_alert_tick', 'posts_normalize', 'blog_reindex'];
+$PUBLIC_ACTIONS  = ['login', 'send_form', 'form_token', 'onboarding_upload', 'form_draft', 'drafts_alert_tick', 'posts_normalize', 'blog_reindex'];
 $SESSION_ACTIONS = ['logout','session','list_users','save_user','delete_user','change_password','get_secrets','set_secret','repo_fetch','set_page_password','install_clean_urls','ghl_test','test_email'];
 
 $apiTok      = $_SERVER['HTTP_X_API_TOKEN'] ?? ($body['token'] ?? ($_POST['token'] ?? ''));
@@ -262,6 +262,7 @@ try {
         case 'delete_file': ob_end_clean(); cmsDeleteFile($body); break;
         case 'optimize_image': ob_end_clean(); cmsApiOptimizeImage($body); break;
         case 'send_form':   ob_end_clean(); cmsSendForm($body); break;
+        case 'form_token':  ob_end_clean(); require_once __DIR__ . '/form_guard.php'; echo json_encode(['token' => cmsFormToken()]); break;
         case 'onboarding_upload': ob_end_clean(); cmsOnboardingUpload(); break;
         case 'form_draft': ob_end_clean(); cmsApiFormDraft($body); break;
         case 'drafts_alert_tick': ob_end_clean(); cmsApiDraftsAlertTick(); break;
@@ -794,7 +795,7 @@ function cmsWriteFile($body) {
     // (blog.html, blog-*.html, data/posts.json) stay CMS-managed on purpose.
     $repoManaged = ['index.html','why-44i.html','book-a-demo.html','onboarding.html','glossary.html',
         'privacy.html','terms.html','accessibility.html','who-we-serve.html','nav.js','willow.js',
-        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php','admin/gate_token.php','favicon.ico','site.webmanifest'];
+        'adaptify.js','shared.css','interior.css','robots.txt','llms.txt','.htaccess','.user.ini','_fourge_gate.php','admin/gate_token.php','admin/form_guard.php','favicon.ico','site.webmanifest'];
     $repoPrefixes = ['services/','program/','who-we-serve/','stories/','assets/og/','assets/favicon/'];
     $isRepoManaged = in_array($relNorm, $repoManaged, true);
     foreach ($repoPrefixes as $pref) { if (strpos($relNorm, $pref) === 0) $isRepoManaged = true; }
@@ -1609,16 +1610,42 @@ function cmsFormNotifyOverride($formId) {
 }
 
 function cmsSendForm($body) {
+    require_once __DIR__ . '/form_guard.php';
     $mg      = cmsMailgun();
-    $fields  = $body['fields']  ?? [];
-    $subject = $body['subject'] ?? 'New Form Submission';
-    $toEmail = $body['to']      ?? $mg['notify'];
-    $siteUrl = $body['siteUrl'] ?? '';
-    $formId  = $body['formId']  ?? '';
-    $rcToken = $body['recaptcha'] ?? '';
+    $fields  = is_array($body['fields'] ?? null) ? $body['fields'] : [];
+    // The subject is display text from the page: one line, bounded.
+    $subject = mb_substr(trim(preg_replace('~[\r\n]+~', ' ', (string)($body['subject'] ?? ''))), 0, 150) ?: 'New Form Submission';
+    // Recipients are NEVER taken from the request — honoring a client-supplied
+    // "to" made this public endpoint an open mail relay. The per-form override
+    // wins, else the configured notify address.
+    $toEmail = $mg['notify'];
+    $siteUrl = (string)($body['siteUrl'] ?? '');
+    $formId  = (string)($body['formId']  ?? '');
+    $rcToken = (string)($body['recaptcha'] ?? '');
 
     $notifyOverride = cmsFormNotifyOverride($formId);
     if ($notifyOverride !== null) $toEmail = $notifyOverride;
+
+    // ── anti-spam gate (form_guard.php) ─────────────────────────────────────
+    $why = '';
+    if (!cmsFormIdAllowed($formId, $notifyOverride !== null)) {
+        cmsFormSpamLog('unknown form', $formId, $fields);
+        http_response_code(400); echo json_encode(['error' => 'Unknown form.']); return;
+    }
+    if (cmsFormIsSpam($fields, $why)) {
+        cmsFormSpamLog($why, $formId, $fields);
+        echo json_encode(['ok' => true]); return;              // bots get a quiet "ok"
+    }
+    if (!cmsFormTokenValid((string)($body['token'] ?? ''), $why)) {
+        cmsFormSpamLog('token ' . $why, $formId, $fields);
+        http_response_code(400);
+        echo json_encode(['error' => 'This form needs a fresh page — please reload and submit again, or call 605.271.7321.']); return;
+    }
+    if (cmsFormRateLimited($why)) {
+        cmsFormSpamLog('rate limit: ' . $why, $formId, $fields);
+        http_response_code(429);
+        echo json_encode(['error' => 'Too many submissions from your network in a short time. Please try again later, or call 605.271.7321.']); return;
+    }
 
     // reCAPTCHA verification (only enforced if a secret is configured in site.json)
     $rcSecret = cmsRecaptchaSecret();

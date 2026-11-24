@@ -336,6 +336,10 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
 (function () {
   'use strict';
   var API = 'admin/api.php';
+  /* anti-spam token (see admin/form_guard.php): fetched on load, sent with the final submit */
+  var obTok = '';
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'form_token' }) })
+    .then(function (r) { return r.json(); }).then(function (d) { obTok = (d && d.token) || ''; }).catch(function () {});
   var form = document.getElementById('ob-form');
   var msg = document.getElementById('ob-msg');
   var pages = Array.prototype.slice.call(form.querySelectorAll('.ob-page'));
@@ -589,6 +593,7 @@ table.ob-list input{width:100%;padding:8px 10px;border:1px solid #d8d4cc;border-
             action: 'send_form',
             formId: 'whitelabel-onboarding',
             draftId: draftId,
+            token: obTok,
             fields: fields,
             recaptcha: '',
             subject: 'New submission from White Label Onboarding',
