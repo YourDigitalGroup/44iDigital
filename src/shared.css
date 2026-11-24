@@ -433,7 +433,7 @@ footer { background: var(--ink); color: var(--paper); padding: 80px 0 40px; bord
 .success-card .result .accent { color: var(--coral); }
 .success-card .situation { font-size: 17px; color: var(--ink-soft); line-height: 1.6; margin-bottom: 16px; }
 .success-card .situation b { color: var(--ink); font-weight: 600; }
-.success-card h4 { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); margin: 18px 0 8px; }
+.success-card h3, .success-card h4 { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); margin: 18px 0 8px; }
 .success-card ul.results { list-style: none; padding: 0; margin-bottom: 20px; }
 .success-card ul.results li {
   position: relative; padding-left: 24px; margin-bottom: 8px;

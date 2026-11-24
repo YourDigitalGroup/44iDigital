@@ -676,8 +676,40 @@ function cmsBlogRegenListing($posts) {
         $src = preg_replace('~(<div class="blog-grid" id="blog-grid">)[\s\S]*?(<div class="blog-empty")~', '$1' . "\n" . $cards . "\n" . '$2', $src, 1);
     }
     $src = preg_replace('~(<select id="filter-topic"[^>]*>)[\s\S]*?(</select>)~', '$1' . cmsBlogTopicOptionsHtml($posts) . '$2', $src, 1);
+    if ($src !== null) $src = cmsBlogListingSeo($src, $posts);
     if ($src === null || $src === $orig) return false;
     return file_put_contents($f, $src) !== false;
+}
+// Search/answer-engine metadata for /blog, refreshed with every card regen so
+// it can't drift: the meta description and social tags it lacked, plus one
+// managed JSON-LD graph (data-seo-44i) — breadcrumb, CollectionPage, and an
+// ItemList of every published post, newest first. Mirrors blogListingSeo() in
+// admin/index.html; the Organization node it points at is in the page head.
+function cmsBlogListingSeo($src, $posts) {
+    $B = 'https://www.44idigital.com'; $url = $B . '/blog';
+    $desc = 'Field notes on white label digital for broadcasters, agencies and publishers: SEO and AEO, social, streaming TV, local search and selling digital.';
+    $title = preg_match('~<title>([^<]*)</title>~', $src, $m) ? html_entity_decode($m[1], ENT_QUOTES, 'UTF-8') : 'Blog | 44i Digital';
+    $tags = [['name', 'description', $desc], ['property', 'og:site_name', '44i Digital'], ['property', 'og:title', $title],
+             ['property', 'og:description', $desc], ['name', 'twitter:title', $title], ['name', 'twitter:description', $desc]];
+    foreach ($tags as [$a, $k, $v]) {
+        if (preg_match('~<meta\s[^>]*' . $a . '="' . preg_quote($k, '~') . '"~i', $src)) continue;
+        $src = preg_replace('~</head>~i', '<meta ' . $a . '="' . $k . '" content="' . cmsBlogEsc($v) . '">' . "\n</head>", $src, 1);
+    }
+    $items = [];
+    foreach (cmsBlogPublishedSorted($posts) as $i => $p) {
+        $items[] = ['@type' => 'ListItem', 'position' => $i + 1, 'url' => $B . '/blog-' . ($p['slug'] ?? ''), 'name' => html_entity_decode((string)($p['title'] ?? ''), ENT_QUOTES, 'UTF-8')];
+    }
+    $graph = ['@context' => 'https://schema.org', '@graph' => [
+        ['@type' => 'WebSite', '@id' => $B . '/#website', 'url' => $B . '/', 'name' => '44i Digital', 'publisher' => ['@id' => $B . '/#organization'], 'inLanguage' => 'en-US'],
+        ['@type' => 'BreadcrumbList', '@id' => $url . '#breadcrumb', 'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $B . '/'], ['@type' => 'ListItem', 'position' => 2, 'name' => 'Blog', 'item' => $url]]],
+        ['@type' => 'CollectionPage', '@id' => $url . '#webpage', 'url' => $url, 'name' => $title, 'description' => $desc, 'isPartOf' => ['@id' => $B . '/#website'],
+         'about' => ['@id' => $B . '/#organization'], 'breadcrumb' => ['@id' => $url . '#breadcrumb'], 'mainEntity' => ['@id' => $url . '#posts'], 'inLanguage' => 'en-US'],
+        ['@type' => 'ItemList', '@id' => $url . '#posts', 'itemListOrder' => 'https://schema.org/ItemListOrderDescending', 'numberOfItems' => count($items), 'itemListElement' => $items],
+    ]];
+    $block = '<script type="application/ld+json" data-seo-44i>' . str_replace('</', '<\/', json_encode($graph, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) . '</script>';
+    $src = preg_replace('~<script type="application/ld\+json" data-seo-44i>[\s\S]*?</script>\n?~', '', $src);
+    return preg_replace('~</head>~i', $block . "\n</head>", $src, 1);
 }
 function cmsApiBlogReindex() {
     $pf = PUBLIC_HTML . '/data/posts.json';
