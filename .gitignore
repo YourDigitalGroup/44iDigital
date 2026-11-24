@@ -28,3 +28,5 @@ Thumbs.db
 # Form anti-spam runtime files (server-side only, written by admin/form_guard.php)
 data/ratelimit.json
 data/spam-log.json
+data/spam-rules.json
+data/spam-blocks.json

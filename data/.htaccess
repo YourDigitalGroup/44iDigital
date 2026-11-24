@@ -8,7 +8,7 @@
 #   public HTTP, so nobody should be able to download it.
 # Other data/*.json (pages, posts, site, seo) stay readable because the public
 # site loads them.
-<FilesMatch "^(users|entries|ratelimit|spam-log)\.json$">
+<FilesMatch "^(users|entries|ratelimit|spam-log|spam-rules|spam-blocks)\.json$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
