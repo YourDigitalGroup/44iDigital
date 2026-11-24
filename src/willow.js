@@ -366,7 +366,7 @@
     launch.setAttribute('data-mono', MONO);
     launch.innerHTML = avatarHtml() + '<span class="wlw-dot"></span>';
     root.appendChild(launch);
-    launch.addEventListener('click', function () { setOpen(!state.open); });
+    launch.addEventListener('click', function () { setOpen(!state.open); if (state.open) ensureFormToken(); });
     panel.querySelector('.wlw-close').addEventListener('click', function () { setOpen(false); });
 
     if (C.teaser && !state.log.length && !ssGet('willow-teaser-x')) {
@@ -377,7 +377,7 @@
         teaser.innerHTML = '<button class="wlw-x" aria-label="Dismiss">&#10005;</button>' + escAttr(C.teaser).replace(escAttr(C.name), '<b>' + escAttr(C.name) + '</b>');
         root.appendChild(teaser);
         teaser.querySelector('.wlw-x').addEventListener('click', function (e) { e.stopPropagation(); killTeaser(); });
-        teaser.addEventListener('click', function () { setOpen(true); });
+        teaser.addEventListener('click', function () { setOpen(true); ensureFormToken(); });
       }, 2500);
     }
   }
@@ -756,14 +756,33 @@
     });
   }
 
+  // Anti-spam token for send_form (admin/form_guard.php): fetched when the chat
+  // opens, so by the time the visitor has answered the questions it is well past
+  // the server's 4-second minimum age; submitLead waits out any remainder.
+  var formTok = null, formTokAt = 0, formTokReq = null;
+  function ensureFormToken() {
+    if (formTok && Date.now() - formTokAt < 5 * 3600 * 1000) return Promise.resolve(formTok);
+    if (formTokReq) return formTokReq;
+    formTokReq = fetch(C.api, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'form_token' }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { formTokReq = null; if (d && d.token) { formTok = d.token; formTokAt = Date.now(); } return formTok; })
+      .catch(function () { formTokReq = null; return null; });
+    return formTokReq;
+  }
+
   function submitLead(node) {
     if (state.done) { finishUp(node); return; }
     showTyping();
+    ensureFormToken().then(function (ftok) {
+      var wait = 4300 - (Date.now() - formTokAt);
+      return (ftok && wait > 0) ? new Promise(function (r) { setTimeout(function () { r(ftok); }, wait); }) : ftok;
+    }).then(function (ftok) {
     recaptchaToken(function (token) {
       var payload = {
         action: 'send_form',
         formId: C.formId,
         fields: collectFields(),
+        token: ftok || '',
         subject: C.subject + (state.outcome ? ' — ' + state.outcome : ''),
         siteUrl: location.href,
         recaptcha: token
@@ -792,6 +811,7 @@
         body.appendChild(wrap);
         scrollEnd();
       });
+    });
     });
   }
 

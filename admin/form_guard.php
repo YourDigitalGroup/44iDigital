@@ -28,9 +28,13 @@ function cmsFormTokenValid($tok, &$why, $minAge = 4, $maxAge = 21600) {
     if ($age > $maxAge) { $why = 'expired'; return false; }
     return true;
 }
+// Hand-coded forms that post to send_form without a forms.json entry: the
+// Willow chatbot's lead capture, the Fourge Insights sample request, and the
+// white-label onboarding form. Anything else unknown is a relay attempt.
+function cmsFormHandCodedIds() { return ['willow-partner-bot', 'fourge-insights-sample', 'whitelabel-onboarding']; }
 function cmsFormIdAllowed($formId, $hasOverride) {
     if ($formId === '') return false;
-    if ($hasOverride) return true;
+    if ($hasOverride || in_array((string)$formId, cmsFormHandCodedIds(), true)) return true;
     $f = cmsFormDataDir() . '/forms.json';
     $forms = is_file($f) ? json_decode((string)file_get_contents($f), true) : null;
     if (!is_array($forms)) return false;
